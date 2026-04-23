@@ -1,22 +1,8 @@
 <?php
 session_start();
 
+require_once 'auth.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
-    exit();
-}
-
-if ($_SESSION['user_statut'] === 'en_attente') {
-    header('Location: attente.php');
-    exit();
-}
-
-
-if ($_SESSION['user_role'] === 'user') {
-    header('Location: index.php');
-    exit();
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -59,6 +45,9 @@ if ($_SESSION['user_role'] === 'user') {
         <a href="stock.php" class="sidebar-link" title="Stock">
           <i class="bi bi-box-seam-fill"></i>
         </a>
+
+        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+
         <a href="mouvements.php" class="sidebar-link" title="Mouvements">
           <i class="bi bi-arrow-left-right"></i>
         </a>
@@ -72,6 +61,8 @@ if ($_SESSION['user_role'] === 'user') {
         <a href="statistique.php" class="sidebar-link active" title="Statistiques">
           <i class="bi bi-bar-chart-fill"></i>
         </a>
+
+        <?php endif; ?>
         
         <div class="dropup d-md-none">
           <button class="sidebar-user-btn" id="userMenuMobile" data-bs-toggle="dropdown" aria-expanded="false" title="Profil">
@@ -171,62 +162,64 @@ if ($_SESSION['user_role'] === 'user') {
           <i class="bi bi-graph-up-arrow"></i>
         </div>
         <div class="stat-card__body">
-          <span class="stat-card__label">Ventes du mois</span>
-          <span class="stat-card__value" id="stat-encaisse">…</span>
+          <span class="stat-card__label">Vente du mois</span>
+          <span class="stat-card__value" id="stat-vente">…</span>
           <span class="stat-card__sub">chiffre d'affaires</span>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-card__icon stat-card__icon--blue">
-          <i class="bi bi-credit-card-fill"></i>
-        </div>
-        <div class="stat-card__body">
-          <span class="stat-card__label">Paiements CB</span>
-          <span class="stat-card__value" id="stat-cb">…</span>
-          <span class="stat-card__sub">carte bancaire</span>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-card__icon stat-card__icon--orange">
-          <i class="bi bi-cash-coin"></i>
-        </div>
-        <div class="stat-card__body">
-          <span class="stat-card__label">Paiements Espèces</span>
-          <span class="stat-card__value" id="stat-espece">…</span>
-          <span class="stat-card__sub">en liquide</span>
-        </div>
-      </div>
-
-      <div class="stat-card">
         <div class="stat-card__icon stat-card__icon--red">
-          <i class="bi bi-exclamation-triangle-fill"></i>
+          <i class="bi bi-cart-dash-fill"></i>
         </div>
         <div class="stat-card__body">
-          <span class="stat-card__label">Impayés du mois</span>
-          <span class="stat-card__value" id="stat-impayes">…</span>
-          <span class="stat-card__sub">crédit en attente</span>
+          <span class="stat-card__label">Dépense du mois</span>
+          <span class="stat-card__value" id="stat-depense">…</span>
+          <span class="stat-card__sub">achats / approvisionnements</span>
         </div>
       </div>
 
       <div class="stat-card">
         <div class="stat-card__icon stat-card__icon--gold">
+          <i class="bi bi-cash-coin"></i>
+        </div>
+        <div class="stat-card__body">
+          <span class="stat-card__label">Bénéf du mois</span>
+          <span class="stat-card__value" id="stat-benef">…</span>
+          <span class="stat-card__sub">vente − dépense</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card__icon stat-card__icon--blue">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-card__body">
+          <span class="stat-card__label">Clients du mois</span>
+          <span class="stat-card__value" id="stat-clients">…</span>
+          <span class="stat-card__sub">clients distincts</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card__icon stat-card__icon--orange">
           <i class="bi bi-receipt-cutoff"></i>
         </div>
         <div class="stat-card__body">
           <span class="stat-card__label">Commandes du mois</span>
           <span class="stat-card__value" id="stat-commandes">…</span>
-          <span class="stat-card__sub">total commandes</span>
+          <span class="stat-card__sub">total transactions</span>
         </div>
       </div>
+
     </div>
 
     <div class="container-fluid mt-4 mb-4">
       <div class="card shadow-sm h-100">
           <div class="card-body">
               <h5 class="card-title text-center mb-4">Rapport Financier Annuel</h5>
-              
+              <button id="exportPdfBtn" class="btn btn-sm btn-outline-primary mb-3"><i class="bi bi-file-earmark-pdf-fill me-1"></i>Exporter en PDF</button>
+              <button id="exportExcelBtn" class="btn btn-sm btn-outline-success mb-3"><i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Exporter en Excel</button>
               <div id="financeChart"></div>
               
           </div>
@@ -270,6 +263,17 @@ if ($_SESSION['user_role'] === 'user') {
         </div>
       </div>
     </div>
+    <nav class="mobile-bottom-nav">
+      <a href="index.php" class="mobile-bottom-nav__item" title="Caisse"><i class="bi bi-house-door-fill"></i></a>
+      <a href="commande.php" class="mobile-bottom-nav__item" title="Commandes"><i class="bi bi-receipt-cutoff"></i></a>
+      <a href="stock.php" class="mobile-bottom-nav__item" title="Stock"><i class="bi bi-box-seam-fill"></i></a>
+      <a href="mouvements.php" class="mobile-bottom-nav__item" title="Mouvements"><i class="bi bi-arrow-left-right"></i></a>
+      <a href="vente.php" class="mobile-bottom-nav__item" title="Transactions"><i class="bi bi-cash-stack"></i></a>
+      <a href="user.php" class="mobile-bottom-nav__item" title="Utilisateurs"><i class="bi bi-people-fill"></i></a>
+      <a href="statistique.php" class="mobile-bottom-nav__item active" title="Statistiques"><i class="bi bi-bar-chart-fill"></i></a>
+      <a href="api/deco.php" class="mobile-bottom-nav__item" title="Profil / Déconnexion"><i class="bi bi-person-circle"></i></a>
+    </nav>
+
     <script src="js/jquery-1.11.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>

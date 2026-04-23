@@ -12,10 +12,13 @@ if (!isset($data['items']) || empty($data['items'])) {
     exit;
 }
 
+$nom_client    = $data['nom_client'] ?? '';
+$prenom_client = $data['prenom_client'] ?? '';
+$email_client  = $data['email_client'] ?? '';
+
 try {
     $pdo->beginTransaction();
 
-    // Calcul du total
     $montantTotal = 0;
     foreach ($data['items'] as $item) {
         $montantTotal += $item['prix'] * $item['quantite'];
@@ -26,32 +29,37 @@ try {
         echo json_encode(['success' => false, 'message' => 'Session expirée, veuillez vous reconnecter.']);
         exit;
     }
-    $idEvenement = null;
 
-    // Création de la commande — etatPaiement = 1 (payé), etatPreparation = 0 (en attente)
+    $idEvenement     = $_SESSION['active_event_id'] ?? null;
+    $idEntrepotActif = $_SESSION['active_entrepot_id'] ?? 1;
+
     $stmt = $pdo->prepare(
-        "INSERT INTO Commande (numTicket, `date`, Montant, modePAIEMENT, etatPaiement, etatPreparation, idEvenement, idUtilisateur)
-         VALUES ('T-TEMP', NOW(), :montant, 'CB', 1, 0, :evenement, :utilisateur)"
+        "INSERT INTO Commande (numTicket, `date`, Montant, modePAIEMENT, etatPaiement, etatPreparation, idEvenement, idUtilisateur, nom_client, prenom_client, email_client)
+         VALUES ('T-TEMP', NOW(), :montant, 'CB', 1, 0, :evenement, :utilisateur, :nom_client, :prenom_client, :email_client)"
     );
+
     $stmt->execute([
-        ':montant'     => round($montantTotal, 2),
-        ':evenement'   => $idEvenement,
-        ':utilisateur' => $idUtilisateur,
+        ':montant'       => round($montantTotal, 2),
+        ':evenement'     => $idEvenement,
+        ':utilisateur'   => $idUtilisateur,
+        ':nom_client'    => $nom_client,
+        ':prenom_client' => $prenom_client,
+        ':email_client'  => $email_client,
     ]);
 
-    // Récupérer le vrai ID généré par MySQL (plus fiable que lastInsertId())
     $idCommande = (int) $pdo->query("SELECT LAST_INSERT_ID()")->fetchColumn();
+    $numTicket  = 'T-' . $idCommande;
 
-    // Numéro de ticket final
     $pdo->exec("UPDATE Commande SET numTicket = 'T-$idCommande' WHERE idCommande = $idCommande");
 
-    // Lignes de commande + décrémentation du stock
     $stmtLigne = $pdo->prepare(
         "INSERT INTO ligne_commande (idCommande, idproduit, quantite, prix) VALUES (:idCmd, :idProd, :qty, :prix)"
     );
+    $stmtCheckCompo = $pdo->prepare("SELECT idIngredient, qte FROM composition WHERE idProduit = :idProd");
     $stmtStock = $pdo->prepare(
-        "UPDATE Stock SET Quantite = GREATEST(0, Quantite - :qty) WHERE idProduit = :idProd"
+        "UPDATE Stock SET Quantite = GREATEST(0, Quantite - :qty) WHERE idProduit = :idProd AND idEntrepot = :idEntrepot"
     );
+
     foreach ($data['items'] as $item) {
         $stmtLigne->execute([
             ':idCmd'  => $idCommande,
@@ -59,18 +67,174 @@ try {
             ':qty'    => $item['quantite'],
             ':prix'   => $item['prix'],
         ]);
-        $stmtStock->execute([
-            ':qty'    => $item['quantite'],
-            ':idProd' => $item['idproduit'],
-        ]);
+
+        $stmtCheckCompo->execute([':idProd' => $item['idproduit']]);
+        $ingredients = $stmtCheckCompo->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($ingredients) > 0) {
+            foreach ($ingredients as $ing) {
+                $qteADeduire = $ing['qte'] * $item['quantite'];
+                $stmtStock->execute([
+                    ':qty'        => $qteADeduire,
+                    ':idProd'     => $ing['idIngredient'],
+                    ':idEntrepot' => $idEntrepotActif,
+                ]);
+            }
+        } else {
+            $stmtStock->execute([
+                ':qty'        => $item['quantite'],
+                ':idProd'     => $item['idproduit'],
+                ':idEntrepot' => $idEntrepotActif,
+            ]);
+        }
     }
 
     $pdo->commit();
 
-    // Lire le numTicket réel depuis la BDD après commit (source de vérité)
-    $row = $pdo->prepare("SELECT numTicket FROM Commande WHERE idCommande = ?");
-    $row->execute([$idCommande]);
-    $numTicket = $row->fetchColumn() ?: ('T-' . $idCommande);
+    if (!empty($email_client)) {
+
+        require_once 'vendor/autoload.php';
+
+        try {
+            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host       = 'sandbox.smtp.mailtrap.io';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = '9f01a67a6889be';
+            $mail->Password   = '25ba3a92f5b0f8';
+            $mail->Port       = 2525;
+
+            $mail->CharSet  = 'UTF-8';
+            $mail->Encoding = 'base64';
+
+            $mail->setFrom('boutique@gnmhb.fr', 'Nancy Handball');
+            $mail->addAddress($email_client, $prenom_client . ' ' . $nom_client);
+
+            $mail->isHTML(true);
+            $mail->Subject = 'Votre Ticket de Caisse - Nancy Handball';
+
+            $logoPath   = __DIR__ . '/../images/logoClub3.png';
+            $logoTag    = '';
+            if (file_exists($logoPath)) {
+                $logoBase64 = base64_encode(file_get_contents($logoPath));
+                $logoMime   = 'image/png';
+                $logoTag    = "<img src='data:{$logoMime};base64,{$logoBase64}' alt='Nancy Handball' width='120' style='display:block; margin:0 auto 12px;'/>";
+            }
+
+            $articlesHtml = '';
+            foreach ($data['items'] as $item) {
+                $totalLigne = number_format($item['prix'] * $item['quantite'], 2, ',', ' ');
+                $nomProduit = htmlspecialchars($item['nom'], ENT_QUOTES, 'UTF-8');
+
+                $articlesHtml .= "
+                <table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom:12px;'>
+                  <tr>
+                    <td valign='top' style='padding-left:12px;'>
+                      <p style='margin:0 0 4px; color:#222; font-size:13px; font-weight:bold;'>{$nomProduit}</p>
+                      <p style='margin:0; color:#888; font-size:12px;'>qté : {$item['quantite']}</p>
+                    </td>
+                    <td valign='top' style='text-align:right; white-space:nowrap;'>
+                      <p style='margin:0; color:#1a1f5e; font-size:14px; font-weight:bold;'>{$totalLigne} &euro;</p>
+                    </td>
+                  </tr>
+                </table>
+                <hr style='border:none; border-top:1px solid #f0f0f0; margin:0 0 12px;'/>
+                ";
+            }
+
+            $montantAffiche = number_format($montantTotal, 2, ',', ' ');
+            $dateAffichee   = date('d/m/Y H:i');
+            $clientAffiche  = htmlspecialchars($prenom_client . ' ' . $nom_client, ENT_QUOTES, 'UTF-8');
+
+            $mail->Body = "
+            <!DOCTYPE html>
+            <html lang='fr'>
+            <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            </head>
+            <body style='margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, sans-serif;'>
+
+            <table width='100%' cellpadding='0' cellspacing='0' style='background-color:#f4f4f4; padding:20px 0;'>
+            <tr><td align='center'>
+
+            <table width='560' cellpadding='0' cellspacing='0' style='background:#ffffff; border-radius:12px; overflow:hidden; max-width:560px;'>
+
+                <tr>
+                <td style='background-color:#1a1f5e; padding:30px 20px; text-align:center;'>
+                    {$logoTag}
+                </td>
+                </tr>
+
+                <tr>
+                <td style='padding:35px 30px 10px; text-align:center;'>
+                    <div style='width:56px; height:56px; background:#f0faf4; border-radius:50%; margin:0 auto 16px; line-height:56px;'>
+                    <span style='font-size:28px; color:#27ae60;'>&#10003;</span>
+                    </div>
+                    <h2 style='margin:0 0 8px; color:#1a1f5e; font-size:22px; font-weight:bold;'>Merci pour votre commande</h2>
+                    <p style='margin:0; color:#888; font-size:13px;'>Veuillez vous rendre au comptoir pour la r&eacute;cup&eacute;rer</p>
+                </td>
+                </tr>
+
+                <tr><td style='padding:20px 30px 0;'><hr style='border:none; border-top:1px solid #eeeeee; margin:0;'/></td></tr>
+
+                <tr>
+                <td style='padding:20px 30px;'>
+                    <p style='margin:0 0 16px; color:#1a1f5e; font-size:15px; font-weight:bold;'>D&eacute;tail</p>
+                    <table width='100%' cellpadding='0' cellspacing='0'>
+                    <tr>
+                        <td style='color:#888; font-size:13px; padding:8px 0; border-bottom:1px solid #f0f0f0;'>Ticket</td>
+                        <td style='text-align:right; color:#222; font-size:13px; padding:8px 0; border-bottom:1px solid #f0f0f0;'>{$numTicket}</td>
+                    </tr>
+                    <tr>
+                        <td style='color:#888; font-size:13px; padding:8px 0; border-bottom:1px solid #f0f0f0;'>Montant</td>
+                        <td style='text-align:right; color:#222; font-size:13px; font-weight:bold; padding:8px 0; border-bottom:1px solid #f0f0f0;'>{$montantAffiche} &euro;</td>
+                    </tr>
+                    <tr>
+                        <td style='color:#888; font-size:13px; padding:8px 0; border-bottom:1px solid #f0f0f0;'>Date</td>
+                        <td style='text-align:right; color:#222; font-size:13px; padding:8px 0; border-bottom:1px solid #f0f0f0;'>{$dateAffichee}</td>
+                    </tr>
+                    <tr>
+                        <td style='color:#888; font-size:13px; padding:8px 0;'>Client</td>
+                        <td style='text-align:right; color:#222; font-size:13px; padding:8px 0;'>{$clientAffiche}</td>
+                    </tr>
+                    </table>
+                </td>
+                </tr>
+
+                <tr><td style='padding:0 30px;'><hr style='border:none; border-top:1px solid #eeeeee; margin:0;'/></td></tr>
+
+                <tr>
+                <td style='padding:20px 30px;'>
+                    <p style='margin:0 0 16px; color:#1a1f5e; font-size:15px; font-weight:bold;'>R&eacute;capitulatif de votre commande</p>
+                    {$articlesHtml}
+                </td>
+                </tr>
+
+                <tr>
+                <td style='background-color:#1a1f5e; padding:25px 20px; text-align:center;'>
+                    <p style='margin:0 0 12px; color:#b4963c; font-size:13px; font-weight:bold; letter-spacing:1px;'>Besoin d&apos;aide ?</p>
+                    <p style='margin:0; color:#aaaacc; font-size:12px;'>
+                    &#9993; info@gnmhb.fr &nbsp;&nbsp; &#9742; +33 800 123 456
+                    </p>
+                    <p style='margin:16px 0 0; color:#666a99; font-size:11px;'>Grand Nancy M&eacute;tropole Handball</p>
+                </td>
+                </tr>
+
+            </table>
+
+            </td></tr>
+            </table>
+            </body>
+            </html>
+            ";
+
+            $mail->send();
+
+        } catch (Exception $e) {
+            error_log('Erreur envoi email : ' . $mail->ErrorInfo);
+        }
+    }
 
     echo json_encode([
         'success'    => true,

@@ -4,38 +4,36 @@ function formatEur(val) {
     return val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 }
 
-// ── Stat cards ────────────────────────────────────────────────────────────────
 fetch('api/getStatsMois.php')
     .then(r => r.json())
     .then(data => {
-        document.getElementById('stat-encaisse').textContent   = formatEur(parseFloat(data.totalEncaisse));
-        document.getElementById('stat-cb').textContent         = formatEur(parseFloat(data.totalCB));
-        document.getElementById('stat-espece').textContent     = formatEur(parseFloat(data.totalEspece));
-        document.getElementById('stat-impayes').textContent    = formatEur(parseFloat(data.totalImpayes));
-        document.getElementById('stat-commandes').textContent  = parseInt(data.nbCommandes);
+        document.getElementById('stat-vente').textContent    = formatEur(parseFloat(data.totalVente));
+        document.getElementById('stat-depense').textContent  = formatEur(parseFloat(data.totalDepense));
+        document.getElementById('stat-benef').textContent    = formatEur(parseFloat(data.totalBenef));
+        document.getElementById('stat-clients').textContent  = parseInt(data.nbClients);
+        document.getElementById('stat-commandes').textContent = parseInt(data.nbCommandes);
     })
     .catch(() => {
-        ['stat-encaisse','stat-cb','stat-espece','stat-impayes','stat-commandes']
+        ['stat-vente','stat-depense','stat-benef','stat-clients','stat-commandes']
             .forEach(id => { document.getElementById(id).textContent = '—'; });
     });
 
-// ── Rapport Financier Annuel ──────────────────────────────────────────────────
 fetch('api/getFinanceAnnuel.php')
     .then(r => r.json())
     .then(data => {
         const options = {
             series: [
-                { name: 'Encaissé',  data: data.encaisse },
-                { name: 'Impayés',   data: data.impayes  },
-                { name: 'Total',     data: data.total    }
+                { name: 'Vente',   data: data.vente   },
+                { name: 'Dépense', data: data.depense },
+                { name: 'Bénéf',   data: data.benef   }
             ],
             chart: {
                 height: 400,
                 type: 'line',
-                toolbar: { show: true, tools: { download: true, selection: true } },
+                toolbar: { show: false },
                 zoom: { enabled: false }
             },
-            colors: ['#7EC8E3', '#D4AF37', '#1A2D4F'],
+            colors: ['#3b6fd4', '#e53935', '#FFC43F'],
             stroke: { curve: 'smooth', width: [3, 3, 4] },
             xaxis: { categories: moisLabels },
             yaxis: {
@@ -44,12 +42,11 @@ fetch('api/getFinanceAnnuel.php')
             tooltip: {
                 y: { formatter: val => formatEur(val) }
             },
-            legend: { position: 'top', horizontalAlign: 'center' }
+            legend: { position: 'top', horizontalAlign: 'center' },
         };
         new ApexCharts(document.querySelector('#financeChart'), options).render();
     });
 
-// ── Top 3 Meilleurs Produits ──────────────────────────────────────────────────
 fetch('api/getTopProduits.php')
     .then(r => r.json())
     .then(data => {
@@ -57,7 +54,7 @@ fetch('api/getTopProduits.php')
             series: data.quantites,
             chart: { width: 380, type: 'donut' },
             labels: data.noms,
-            colors: ['#7EC8E3', '#1A2D4F', '#D4AF37'],
+            colors: ['#3b6fd4', '#1a2235', '#FFC43F'],
             dataLabels: { enabled: false },
             tooltip: { y: { formatter: val => val + ' ventes' } },
             legend: { position: 'bottom' },
@@ -70,13 +67,12 @@ fetch('api/getTopProduits.php')
         new ApexCharts(document.querySelector('#topProductsChart'), pieOptions).render();
     });
 
-// ── Stock Actuel par Produit ──────────────────────────────────────────────────
 fetch('api/getStockActuel.php')
     .then(r => r.json())
     .then(data => {
         const stockOptions = {
             series: [{ name: 'Quantité en stock', data: data.quantites }],
-            chart: { type: 'bar', height: 400, toolbar: { show: true } },
+            chart: { type: 'bar', height: 400, toolbar: { show: false } },
             plotOptions: {
                 bar: { borderRadius: 4, columnWidth: '45%', distributed: true }
             },
@@ -86,10 +82,19 @@ fetch('api/getStockActuel.php')
                 labels: { style: { fontSize: '12px', fontWeight: 600 } }
             },
             yaxis: { title: { text: 'Unités en stock' } },
-            colors: ['#7EC8E3', '#4A90C4', '#1A2D4F', '#9FC4DC', '#D4AF37'],
+            colors: ['#3b6fd4', '#4A90C4', '#1a2235', '#9FC4DC', '#FFC43F'],
             legend: { show: false },
             tooltip: { y: { formatter: val => val + ' unités' } },
             noData: { text: 'Aucun stock disponible' }
         };
         new ApexCharts(document.querySelector('#stockEvolutionChart'), stockOptions).render();
     });
+
+document.getElementById('exportPdfBtn').addEventListener('click', () => {
+    window.open('api/exportPdf.php', '_blank');
+});
+
+document.getElementById('exportExcelBtn').addEventListener('click', () => {
+    window.open('api/exportExcel.php', '_blank');
+});
+

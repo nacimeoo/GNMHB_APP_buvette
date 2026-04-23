@@ -1,21 +1,16 @@
-/* ============================================================
-   MOUVEMENTS DE STOCK — JS
-   ============================================================ */
+let toastTimer = null;
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ── Données globales chargées au démarrage ──────────────────
     let entrepots      = [];
     let produitsList   = [];
     let sousCategories = [];
     let compteurLigne  = 0;
 
-    // ── Init ────────────────────────────────────────────────────
     chargerDonnees();
     document.getElementById('entree-date').valueAsDate = new Date();
-    ajouterLigne();   // première ligne par défaut
+    ajouterLigne();   
 
-    // ── Chargement des données de référence ─────────────────────
     async function chargerDonnees() {
         try {
             const [resEnt, resProd, resSC] = await Promise.all([
@@ -34,24 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function remplirSelects() {
-        // Entrepôts
         const selEntreeEnt = document.getElementById('entree-entrepot');
-        const selPerteEnt  = document.getElementById('perte-entrepot');
+        
         entrepots.forEach(e => {
             const opt = `<option value="${e.idEntrepot}">${e.nom}</option>`;
-            selEntreeEnt.insertAdjacentHTML('beforeend', opt);
-            selPerteEnt.insertAdjacentHTML('beforeend', opt);
+            if (selEntreeEnt) selEntreeEnt.insertAdjacentHTML('beforeend', opt);
         });
-
-        // Produits (perte)
-        const selPerteProd = document.getElementById('perte-produit');
-        produitsList.forEach(p => {
-            selPerteProd.insertAdjacentHTML('beforeend',
-                `<option value="${p.idproduit}">${p.nomProduit}</option>`);
-        });
+        
     }
 
-    // ── SECTION 1 — ENTRÉE DE STOCK ─────────────────────────────
 
     document.getElementById('btn-ajouter-ligne').addEventListener('click', ajouterLigne);
     document.getElementById('btn-valider-entree').addEventListener('click', validerEntree);
@@ -79,6 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
                   <span class="fw-semibold info-nom"></span>
                   <span class="text-muted ms-2 info-cat" style="font-size:.8rem;"></span>
                 </div>
+
+
                 <!-- Panneau nouveau produit (caché par défaut) -->
                 <div class="nouveau-produit-panel d-none">
                   <div class="panel-title"><i class="bi bi-plus-circle me-1"></i>Nouveau produit</div>
@@ -95,6 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="col-sm-5">
                       <label class="lbl lbl-req" style="font-size:.78rem;">Prix de vente (€)</label>
                       <input type="number" min="0" step="0.01" class="form-control form-control-sm input-prix-produit" placeholder="2.50">
+                    </div>
+                    <div class="col-sm-12 mt-1">
+                      <label class="lbl" style="font-size:.78rem;">Chemin de l'image</label>
+                      <input type="text" class="form-control form-control-sm input-image-produit" placeholder="ex: images/produit.png">
                     </div>
                   </div>
                 </div>
@@ -137,7 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ── Autocomplete ────────────────────────────────────────────
     function attacherAutocomplete(ligne) {
         const input     = ligne.querySelector('.input-recherche');
         const listEl    = ligne.querySelector('.dropdown-auto');
@@ -182,7 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (q.length < 1) { reset(); return; }
 
-            // Si un produit était sélectionné, le désélectionner
             if (cacheId.value) {
                 cacheId.value = '';
                 infoConnu.classList.add('d-none');
@@ -204,7 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             listEl.appendChild(li);
                         });
 
-                        // Option "Créer nouveau produit"
                         const liNouv = document.createElement('li');
                         liNouv.className = 'list-group-item item-nouveau';
                         liNouv.innerHTML = `<i class="bi bi-plus-circle me-2"></i>Créer nouveau produit : <em>"${q}"</em>`;
@@ -224,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ── Validation et soumission de l'entrée ────────────────────
     async function validerEntree() {
         const idEntrepot = document.getElementById('entree-entrepot').value;
         const date       = document.getElementById('entree-date').value;
@@ -258,11 +246,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (estNouv) {
                 const idSC = l.querySelector('.input-sc').value;
                 const prix = parseFloat(l.querySelector('.input-prix-produit').value);
+                const image = l.querySelector('.input-image-produit').value.trim(); 
                 if (!idSC || !prix || prix <= 0) {
                     afficherToast(`Sous-catégorie et prix obligatoires pour "${recherche}".`, 'error'); return;
                 }
                 ligne.idSousCategorie = parseInt(idSC);
                 ligne.prix = prix;
+                ligne.image = image;
             } else {
                 afficherToast(`Sélectionnez "${recherche}" dans la liste ou choisissez "Créer nouveau produit".`, 'error'); return;
             }
@@ -306,49 +296,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ajouterLigne();
     }
 
-    // ── SECTION 2 — DÉCLARER UNE PERTE ─────────────────────────
 
-    document.getElementById('btn-valider-perte').addEventListener('click', validerPerte);
-
-    async function validerPerte() {
-        const idProduit  = document.getElementById('perte-produit').value;
-        const idEntrepot = document.getElementById('perte-entrepot').value;
-        const quantite   = parseInt(document.getElementById('perte-quantite').value);
-
-        if (!idProduit)              { afficherToast('Veuillez sélectionner un produit.', 'error'); return; }
-        if (!idEntrepot)             { afficherToast('Veuillez sélectionner un entrepôt.', 'error'); return; }
-        if (!quantite || quantite < 1) { afficherToast('Quantité invalide.', 'error'); return; }
-
-        const btn = document.getElementById('btn-valider-perte');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enregistrement…';
-
-        try {
-            const res  = await fetch('api/declarerPerte.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idProduit: parseInt(idProduit), idEntrepot: parseInt(idEntrepot), quantite }),
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                afficherToast('Perte déclarée avec succès.', 'success');
-                document.getElementById('form-perte').reset();
-                chargerHistorique();
-            } else {
-                afficherToast('Erreur : ' + data.message, 'error');
-            }
-        } catch (e) {
-            afficherToast('Erreur de connexion avec le serveur.', 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Déclarer la perte';
-        }
+    const btnRefresh = document.getElementById('btn-refresh-historique');
+    if (btnRefresh) {
+        btnRefresh.addEventListener('click', chargerHistorique);
     }
-
-    // ── SECTION 3 — HISTORIQUE ───────────────────────────────────
-
-    document.getElementById('btn-refresh-historique').addEventListener('click', chargerHistorique);
 
     async function chargerHistorique() {
         const tbody = document.getElementById('historique-body');
@@ -387,8 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ── Toast ────────────────────────────────────────────────────
-    let toastTimer = null;
     function afficherToast(message, type = 'success') {
         const toast = document.getElementById('mvt-toast');
         toast.className = `mvt-toast mvt-toast--${type}`;

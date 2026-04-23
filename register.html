@@ -48,7 +48,15 @@
 								<div class="mb-3">
 									<label class="mb-2 text-muted" for="password">Mot de passe</label>
 									<input id="password" type="password" class="form-control" name="password" required>
-								    <div class="invalid-feedback">
+								    
+									<div id="password-rules" class="mt-2" style="font-size: 0.85rem;">
+										<div id="rule-length"  >✗ 8 caractères minimum</div>
+										<div id="rule-upper"   >✗ Une majuscule</div>
+										<div id="rule-lower"   >✗ Une minuscule</div>
+										<div id="rule-number"  >✗ Un chiffre</div>
+										<div id="rule-special" >✗ Un caractère spécial (!@#$...)</div>
+									</div>
+									<div class="invalid-feedback">
 								    	Mot de passe requis
 							    	</div>
 								</div>
@@ -74,6 +82,6 @@
 		</div>
 	</section>
 
-	<script src="js/login.js"></script>
+	<script src="js/register.js"></script>
 </body>
 </html>

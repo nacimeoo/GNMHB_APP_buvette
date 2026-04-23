@@ -27,7 +27,6 @@ if (empty($lignes)) {
 try {
     $pdo->beginTransaction();
 
-    // 1. Créer le BonEntree
     $stmtBon = $pdo->prepare("
         INSERT INTO BonEntree (idEntrepot, idUtilisateur, dateBon, montantTotal, motif)
         VALUES (:ent, :usr, :date, :montant, 'Entrée de stock')
@@ -52,20 +51,21 @@ try {
             throw new Exception('Quantité invalide pour "' . $nomProduit . '".');
         }
 
-        // Nouveau produit → insérer dans Produit
         if (!$idProduit) {
+
+            $imageProduit = isset($ligne['image']) ? trim($ligne['image']) : '';
+
             if (!$nomProduit || !$idSousCategorie || !$prixVente) {
                 throw new Exception('Données incomplètes pour le nouveau produit "' . $nomProduit . '".');
             }
             $stmtP = $pdo->prepare("
                 INSERT INTO Produit (nomProduit, idSousCategorie, typeCategorie, Prix, seuil_alerte, Image)
-                VALUES (:nom, :cat, 'Simple', :prix, 0, '')
+                VALUES (:nom, :cat, 'Simple', :prix, 0, :img)
             ");
-            $stmtP->execute([':nom' => $nomProduit, ':cat' => $idSousCategorie, ':prix' => $prixVente]);
+            $stmtP->execute([':nom' => $nomProduit, ':cat' => $idSousCategorie, ':prix' => $prixVente, ':img' => $imageProduit]);
             $idProduit = (int)$pdo->lastInsertId();
         }
 
-        // Tenter d'incrémenter le stock existant (même produit + entrepôt + date péremption)
         $stmtUp = $pdo->prepare("
             UPDATE Stock SET Quantite = Quantite + :qty
             WHERE idProduit = :idProd AND idEntrepot = :idEnt AND datePeremption <=> :datePer
@@ -78,7 +78,6 @@ try {
         ]);
 
         if ($stmtUp->rowCount() === 0) {
-            // Nouvelle ligne de stock
             $stmtIns = $pdo->prepare("
                 INSERT INTO Stock (idProduit, idEntrepot, idEvenement, Quantite, datePeremption)
                 VALUES (:idProd, :idEnt, NULL, :qty, :datePer)
@@ -100,7 +99,6 @@ try {
             $idStock = (int)$stmtS->fetchColumn();
         }
 
-        // Mouvement ENTREE
         $stmtM = $pdo->prepare("
             INSERT INTO MouvementStock (idStock, idUtilisateur, typeMouvement, quantite, motif, idBon)
             VALUES (:idStock, :idUsr, 'ENTREE', :qty, 'Entrée de stock', :idBon)

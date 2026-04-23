@@ -171,7 +171,13 @@ window.chargerProduits = function(categorie = '') {
                 conteneurProduits.innerHTML = ''; 
 
                 if(produits.length === 0) {
-                    conteneurProduits.innerHTML = '<p class="text-center w-100">Aucun produit dans cette catégorie.</p>';
+                    const isEventActive = document.getElementById('info-active-event').style.display !== 'none';
+                    
+                    if (!isEventActive) {
+                        conteneurProduits.innerHTML = '<div class="w-100 text-center mt-5"><i class="bi bi-shop fs-1 text-muted d-block mb-3"></i><p class="text-muted fw-bold fs-5">Veuillez démarrer un événement pour ouvrir la caisse.</p></div>';
+                    } else {
+                        conteneurProduits.innerHTML = '<p class="text-center w-100 mt-5">Aucun produit disponible dans ce lieu.</p>';
+                    }
                     return;
                 }
 
@@ -227,6 +233,52 @@ window.chargerProduits = function(categorie = '') {
             });
     }
 };
+
+function demarrerEvent() {
+    const nom = document.getElementById('event-nom').value;
+    const entrepotSelect = document.getElementById('event-entrepot');
+    const idEntrepot = entrepotSelect.value;
+    const nomEntrepot = entrepotSelect.options[entrepotSelect.selectedIndex].text;
+
+    if (!nom) return alert("Veuillez saisir un nom d'événement.");
+
+    fetch('api/startEvent.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            nom: nom, 
+            idEntrepot: idEntrepot,
+            nomEntrepot: nomEntrepot
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('form-start-event').style.display = 'none';
+            document.getElementById('info-active-event').style.display = 'flex';
+            document.getElementById('display-event-nom').innerText = nom;
+            document.getElementById('display-event-lieu').innerText = nomEntrepot;
+            
+            window.chargerProduits('');
+        } else {
+            alert("Erreur : " + data.message);
+        }
+    });
+}
+
+function cloturerEvent() {
+    fetch('api/closeEvent.php')
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('form-start-event').style.display = 'flex';
+            document.getElementById('info-active-event').style.display = 'none';
+            document.getElementById('event-nom').value = '';
+            
+            window.chargerProduits('');
+        }
+    });
+}
 
 
 

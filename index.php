@@ -2,15 +2,7 @@
 session_start();
 
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
-    exit();
-}
-
-if ($_SESSION['user_statut'] === 'en_attente') {
-    header('Location: attente.php');
-    exit();
-}
+require_once 'auth.php';
 
 ?>
 <!DOCTYPE html>
@@ -54,19 +46,23 @@ if ($_SESSION['user_statut'] === 'en_attente') {
         <a href="stock.php" class="sidebar-link" title="Stock">
           <i class="bi bi-box-seam-fill"></i>
         </a>
-        <a href="mouvements.php" class="sidebar-link" title="Mouvements">
-          <i class="bi bi-arrow-left-right"></i>
-        </a>
-        <a href="vente.php" class="sidebar-link" title="Vente">
-          <i class="bi bi-cart-fill"></i>
-        </a>
-        
-        <a href="user.php" class="sidebar-link" title="Utilisateurs">
-          <i class="bi bi-person-circle"></i>
-        </a>
-        <a href="statistique.php" class="sidebar-link" title="Statistiques">
-          <i class="bi bi-bar-chart-fill"></i>
-        </a>
+
+        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+
+          <a href="mouvements.php" class="sidebar-link" title="Mouvements">
+            <i class="bi bi-arrow-left-right"></i>
+          </a>
+          <a href="vente.php" class="sidebar-link" title="Vente">
+            <i class="bi bi-cart-fill"></i>
+          </a>
+          
+          <a href="user.php" class="sidebar-link" title="Utilisateurs">
+            <i class="bi bi-person-circle"></i>
+          </a>
+          <a href="statistique.php" class="sidebar-link" title="Statistiques">
+            <i class="bi bi-bar-chart-fill"></i>
+          </a>
+        <?php endif; ?>
         
         <div class="dropup d-md-none">
           <button class="sidebar-user-btn" id="userMenuMobile" data-bs-toggle="dropdown" aria-expanded="false" title="Profil">
@@ -156,14 +152,14 @@ if ($_SESSION['user_statut'] === 'en_attente') {
       </div>
     </div>
 
-    <div class="offcanvas offcanvas-end cart-offcanvas" data-bs-scroll="true" tabindex="-1" id="offcanvasCart" aria-labelledby="My Cart">
+    <div class="cart-sidebar cart-offcanvas" id="offcanvasCart">
 
       <div class="cart-offcanvas__header">
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-cart-fill" style="font-size:1.2rem; color:#1a2235;"></i>
           <span class="cart-offcanvas__title">Mon Panier</span>
         </div>
-        <button type="button" class="cart-offcanvas__close" data-bs-dismiss="offcanvas" aria-label="Fermer">
+        <button type="button" class="cart-offcanvas__close cart-close-mobile" onclick="fermerPanierMobile()" aria-label="Fermer">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
@@ -178,7 +174,13 @@ if ($_SESSION['user_statut'] === 'en_attente') {
             <span class="cart-total-row__value">0.00 €</span>
           </div>
           <button class="cart-pay-btn w-100" onclick="validerPanier()">
-            <i class="bi bi-credit-card-fill me-2"></i>Payer
+            <i class="bi bi-credit-card-fill me-2"></i>Payer Carte
+          </button>
+
+          <div class="text-center my-2">ou</div>
+
+          <button class="cart-pay-btn w-100" onclick="validerPanier()">
+            <i class="bi bi-credit-card-fill me-2"></i>Payer especes
           </button>
         </div>
 
@@ -204,7 +206,49 @@ if ($_SESSION['user_statut'] === 'en_attente') {
 
     <header>
       <div class="container-fluid">
-        <div class="row py-3 border-bottom align-items-center">
+        <div class="row pt-3 pb-2 border-bottom mb-2 bg-light">
+          <div class="col-12">
+
+              
+          <?php
+            $hasActiveEvent = isset($_SESSION['active_event_id']);
+            $displayStartForm = $hasActiveEvent ? 'none' : 'flex';
+            $displayActiveInfo = $hasActiveEvent ? 'flex' : 'none';
+            
+            $nomEvent = $_SESSION['active_event_nom'] ?? '--';
+            $nomLieu = $_SESSION['active_entrepot_nom'] ?? '--';
+            ?>
+
+            <div id="form-start-event" class="row g-2 align-items-end mt-1" style="display: <?= $displayStartForm ?>;">
+              <div class="col-md-5 col-12">
+                <input type="text" id="event-nom" class="form-control form-control-sm" placeholder="Nom de l'événement">
+              </div>
+              <div class="col-md-4 col-12">
+                <select id="event-entrepot" class="form-select form-select-sm">
+                  <option value="2">Gymnase Provençal</option>
+                  <option value="1">Parc des Sports</option>
+                </select>
+              </div>
+              <div class="col-md-3 col-12">
+                <button class="btn btn-success btn-sm w-100 fw-bold" onclick="demarrerEvent()">
+                  <i class="bi bi-play-circle me-1"></i>Démarrer
+                </button>
+              </div>
+            </div>
+
+            <div id="info-active-event" class="row align-items-center mt-2" style="display: <?= $displayActiveInfo ?>;">
+              <div class="col-8">
+                <h6 class="text-success mb-0 fw-bold" id="display-event-nom"><?= htmlspecialchars($nomEvent) ?></h6>
+                <small class="text-muted">Stock utilisé : <strong id="display-event-lieu"><?= htmlspecialchars($nomLieu) ?></strong></small>
+              </div>
+              <div class="col-4 text-end">
+                <button class="btn btn-danger btn-sm fw-bold" onclick="cloturerEvent()">
+                  <i class="bi bi-stop-circle me-1"></i>Clôturer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
           <div class="col d-flex align-items-center gap-2 header-cat-row-mobile header-cat-row">
             <a href="#" class="header-cat-item" onclick="chargerProduits(''); return false;">Tout</a>
@@ -212,13 +256,6 @@ if ($_SESSION['user_statut'] === 'en_attente') {
             <a href="#" class="header-cat-item" onclick="chargerProduits(2); return false;">Petite faim</a>
             <a href="#" class="header-cat-item" onclick="chargerProduits(3); return false;">Snacks</a>
             <a href="#" class="header-cat-item" onclick="chargerProduits(4); return false;">Gourmandise</a>
-          </div>
-
-          <div class="col-auto ms-auto d-flex justify-content-end gap-3 align-items-center">
-            <a href="#" class="cart-header-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart" aria-controls="offcanvasCart">
-              <svg width="24" height="24" viewBox="0 0 24 24"><use xlink:href="#cart"></use></svg>
-              <span class="cart-count-badge" style="display:none;">0</span>
-            </a>
           </div>
 
         </div>
@@ -235,7 +272,7 @@ if ($_SESSION['user_statut'] === 'en_attente') {
               <div class="tab-content" id="nav-tabContent">
                 <div class="tab-pane fade show active" id="nav-all" role="tabpanel" aria-labelledby="nav-all-tab">
 
-                  <div id="liste-produits" class="product-grid row row-cols-1 row-cols-sm-2 row-cols-lg-3 mt-4">
+                  <div id="liste-produits" class="product-grid row row-cols-3 mt-4">
                     <p class="text-center w-100">Chargement des produits...</p>
                   </div>
                   
@@ -260,6 +297,41 @@ if ($_SESSION['user_statut'] === 'en_attente') {
         </div>
       </div>
     </div>
+    <div id="cart-mobile-overlay" onclick="fermerPanierMobile()"></div>
+
+    <button class="mobile-cart-fab" onclick="ouvrirPanier()" aria-label="Ouvrir le panier">
+      <i class="bi bi-cart-fill"></i>
+      <span class="cart-count-badge mobile-fab-badge" style="display:none;">0</span>
+    </button>
+
+    <!-- Bottom navigation mobile (8 pages) -->
+    <nav class="mobile-bottom-nav">
+      <a href="index.php" class="mobile-bottom-nav__item active" title="Caisse">
+        <i class="bi bi-house-door-fill"></i>
+      </a>
+      <a href="commande.php" class="mobile-bottom-nav__item" title="Commandes">
+        <i class="bi bi-receipt-cutoff"></i>
+      </a>
+      <a href="stock.php" class="mobile-bottom-nav__item" title="Stock">
+        <i class="bi bi-box-seam-fill"></i>
+      </a>
+      <a href="mouvements.php" class="mobile-bottom-nav__item" title="Mouvements">
+        <i class="bi bi-arrow-left-right"></i>
+      </a>
+      <a href="vente.php" class="mobile-bottom-nav__item" title="Transactions">
+        <i class="bi bi-cash-stack"></i>
+      </a>
+      <a href="user.php" class="mobile-bottom-nav__item" title="Utilisateurs">
+        <i class="bi bi-people-fill"></i>
+      </a>
+      <a href="statistique.php" class="mobile-bottom-nav__item" title="Statistiques">
+        <i class="bi bi-bar-chart-fill"></i>
+      </a>
+      <a href="api/deco.php" class="mobile-bottom-nav__item" title="Profil / Déconnexion">
+        <i class="bi bi-person-circle"></i>
+      </a>
+    </nav>
+
     <script src="js/jquery-1.11.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>

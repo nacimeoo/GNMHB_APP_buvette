@@ -2,21 +2,8 @@
 session_start();
 
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
-    exit();
-}
+require_once 'auth.php';
 
-if ($_SESSION['user_statut'] === 'en_attente') {
-    header('Location: attente.php');
-    exit();
-}
-
-
-if ($_SESSION['user_role'] === 'user') {
-    header('Location: index.php');
-    exit();
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -59,19 +46,25 @@ if ($_SESSION['user_role'] === 'user') {
         <a href="stock.php" class="sidebar-link active" title="Stock">
           <i class="bi bi-box-seam-fill"></i>
         </a>
-        <a href="mouvements.php" class="sidebar-link" title="Mouvements">
-          <i class="bi bi-arrow-left-right"></i>
-        </a>
-        <a href="vente.php" class="sidebar-link" title="Vente">
-          <i class="bi bi-cart-fill"></i>
-        </a>
-        
+
+        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+
+          <a href="mouvements.php" class="sidebar-link" title="Mouvements">
+            <i class="bi bi-arrow-left-right"></i>
+          </a>
+          <a href="vente.php" class="sidebar-link" title="Vente">
+            <i class="bi bi-cart-fill"></i>
+          </a>
+          
         <a href="user.php" class="sidebar-link" title="Utilisateurs">
           <i class="bi bi-person-circle"></i>
         </a>
         <a href="statistique.php" class="sidebar-link" title="Statistiques">
           <i class="bi bi-bar-chart-fill"></i>
         </a>
+
+        <?php endif; ?>
+
         
         <div class="dropup d-md-none">
           <button class="sidebar-user-btn" id="userMenuMobile" data-bs-toggle="dropdown" aria-expanded="false" title="Profil">
@@ -162,11 +155,6 @@ if ($_SESSION['user_role'] === 'user') {
       </div>
     </div>
 
-    
-    
-
-    
-
     <div class="stock-stats-grid">
 
       <div class="stat-card">
@@ -223,42 +211,20 @@ if ($_SESSION['user_role'] === 'user') {
           <span class="stat-card__sub">valeur totale du stock</span>
         </div>
       </div>
-
-      
-
     </div>
 
-    <div class="stock-table-wrapper">
-      <div class="stock-table-header">
-        <h5 class="stock-table-title">
-          <i class="bi bi-box-seam-fill me-2"></i>Stock des produits
-        </h5>
-        <button class="btn btn-sm stock-btn-add" data-bs-toggle="modal" data-bs-target="#modalAjoutProduit">
-          <i class="bi bi-plus-lg me-1"></i>Ajouter un produit
-        </button>
+    <div id="stock-container"></div>
+
+    <div class="container-fluid mt-4 mb-5">
+      <h4 class="mb-4" style="color: #1a2235;" >Bilan des événements </h4 >
+      
+      <div class="swiper eventSwiper">
+        <div class="swiper-wrapper" id="event-carousel-wrapper">
+           </div>
+        <div class="swiper-pagination"></div>
+        <div class="swiper-button-prev"></div>
+        <div class="swiper-button-next"></div>
       </div>
-
-      <div class="table-responsive">
-        <table class="table stock-table align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Image</th>
-              <th>Produit</th>
-              <th>Catégorie</th>
-              <th>Prix de vente</th>
-              <th>Quantité</th>
-              <th>Date de péremption</th>
-              <th>Statut</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="stock-produits">
-            </tbody>
-        </table>
-      </div>
-
-    
-
     </div>
 
     <div id="footer-bottom">
@@ -274,98 +240,7 @@ if ($_SESSION['user_role'] === 'user') {
       </div>
     </div>
 
-    <div class="modal fade" id="modalAjoutProduit" tabindex="-1" aria-labelledby="titreModalAjout" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-
-          <div class="modal-header">
-            <h5 class="modal-title" id="titreModalAjout">Ajouter au stock</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-          </div>
-
-          <div class="modal-body">
-            <form id="form-ajout-produit" autocomplete="off">
-
-              <!-- Recherche avec autocomplete -->
-              <div class="mb-3 position-relative">
-                <label for="nomProduit" class="form-label">Nom du produit</label>
-                <input type="text" class="form-control" id="nomProduit" placeholder="Tapez pour rechercher..." autocomplete="off" required>
-                <input type="hidden" id="idProduitCache">
-                <ul id="autocomplete-list" class="list-group position-absolute w-100" style="z-index:9999;display:none;max-height:200px;overflow-y:auto;top:100%;left:0;"></ul>
-              </div>
-
-              <!-- Bandeau produit connu sélectionné -->
-              <div id="info-produit-connu" class="mb-3 p-2 rounded border d-none" style="background:#f0f7ff;">
-                <div class="d-flex align-items-center gap-2">
-                  <i class="bi bi-check-circle-fill text-success"></i>
-                  <span class="fw-semibold" id="info-produit-nom"></span>
-                  <span class="text-muted ms-auto" id="info-produit-prix"></span>
-                </div>
-                <small class="text-muted" id="info-produit-cat"></small>
-              </div>
-
-              <!-- Champs uniquement pour un nouveau produit inconnu -->
-              <div id="section-nouveau-produit" class="d-none">
-                <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:.85rem;">
-                  <i class="bi bi-exclamation-triangle-fill me-1"></i>Produit non trouvé — il sera créé automatiquement.
-                </div>
-                <div class="mb-3">
-                  <label for="categorieProduit" class="form-label">Sous-Catégorie</label>
-                  <select class="form-select" id="categorieProduit">
-                    <option value="" disabled selected>Choisir une sous-catégorie...</option>
-                    <option value="1">Soft (Boissons froides)</option>
-                    <option value="2">Chaud (Boissons chaudes)</option>
-                    <option value="3">Plat (Hot-dog, croque monsieur)</option>
-                    <option value="4">Sucré (Crêpes, Gaufres...)</option>
-                    <option value="5">Chocolat (Barres chocolatées)</option>
-                    <option value="6">Bonbon</option>
-                  </select>
-                </div>
-                <div class="mb-3">
-                  <label for="typeProduit" class="form-label">Type de produit</label>
-                  <select class="form-select" id="typeProduit">
-                    <option value="Simple" selected>Produit Simple (ex: Coca, KitKat)</option>
-                    <option value="Compose">Produit Composé (ex: Hot-Dog, Café)</option>
-                    <option value="Matiere_Premiere">Matière Première (ex: Pain, Saucisse)</option>
-                  </select>
-                </div>
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="prixProduit" class="form-label">Prix de vente</label>
-                    <input type="number" step="0.01" class="form-control" id="prixProduit">
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label for="seuilProduit" class="form-label">Seuil d'alerte</label>
-                    <input type="number" step="0.01" class="form-control" id="seuilProduit">
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <label for="imageProduit" class="form-label">URL de l'image</label>
-                  <input type="text" class="form-control" id="imageProduit" placeholder="images/nouveau-produit.png">
-                </div>
-              </div>
-
-              <!-- Toujours visibles -->
-              <div class="mb-3">
-                <label for="datePeremption" class="form-label">Date de péremption</label>
-                <input type="date" class="form-control" id="datePeremption" required>
-              </div>
-              <div class="mb-3">
-                <label for="quantiteProduit" class="form-label">Quantité</label>
-                <input type="number" min="1" class="form-control" id="quantiteProduit" required>
-              </div>
-
-            </form>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-            <button type="button" class="btn btn-primary" id="btn-sauvegarder-produit">Enregistrer</button>
-          </div>
-
-        </div>
-      </div>
-    </div>
+    
 
     <div class="modal fade" id="modalEditProduit" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
@@ -383,8 +258,15 @@ if ($_SESSION['user_role'] === 'user') {
                 <input type="text" class="form-control" name="nom" id="editNomProduit" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Catégorie (ID)</label>
-                <input type="number" class="form-control" name="categorie_id" id="editCategorieProduit" required>
+                <label class="form-label">Sous-Catégorie</label>
+                <select class="form-select" name="categorie_id" id="editCategorieProduit" required>
+                  <option value="1">Soft (Boissons froides)</option>
+                  <option value="2">Chaud (Boissons chaudes)</option>
+                  <option value="3">Plat (Hot-dog, croque monsieur)</option>
+                  <option value="4">Sucré (Crêpes, Gaufres...)</option>
+                  <option value="5">Chocolat (Barres chocolatées)</option>
+                  <option value="6">Bonbon</option>
+                </select>
               </div>
               <div class="row">
                 <div class="col-md-6 mb-3">
@@ -393,7 +275,7 @@ if ($_SESSION['user_role'] === 'user') {
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label">Quantité</label>
-                  <input type="number" class="form-control" name="quantite_stock" id="editQuantiteProduit" required>
+                  <input type="number" class="form-control bg-light text-muted" name="quantite_stock" id="editQuantiteProduit" readonly required>
                 </div>
               </div>
               <div class="mb-3">
@@ -406,6 +288,17 @@ if ($_SESSION['user_role'] === 'user') {
         </div>
       </div>
     </div>
+    <nav class="mobile-bottom-nav">
+      <a href="index.php" class="mobile-bottom-nav__item" title="Caisse"><i class="bi bi-house-door-fill"></i></a>
+      <a href="commande.php" class="mobile-bottom-nav__item" title="Commandes"><i class="bi bi-receipt-cutoff"></i></a>
+      <a href="stock.php" class="mobile-bottom-nav__item active" title="Stock"><i class="bi bi-box-seam-fill"></i></a>
+      <a href="mouvements.php" class="mobile-bottom-nav__item" title="Mouvements"><i class="bi bi-arrow-left-right"></i></a>
+      <a href="vente.php" class="mobile-bottom-nav__item" title="Transactions"><i class="bi bi-cash-stack"></i></a>
+      <a href="user.php" class="mobile-bottom-nav__item" title="Utilisateurs"><i class="bi bi-people-fill"></i></a>
+      <a href="statistique.php" class="mobile-bottom-nav__item" title="Statistiques"><i class="bi bi-bar-chart-fill"></i></a>
+      <a href="api/deco.php" class="mobile-bottom-nav__item" title="Profil / Déconnexion"><i class="bi bi-person-circle"></i></a>
+    </nav>
+
     <script src="js/jquery-1.11.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>

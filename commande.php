@@ -1,16 +1,7 @@
 <?php
 session_start();
 
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
-    exit();
-}
-
-if ($_SESSION['user_statut'] === 'en_attente') {
-    header('Location: attente.php');
-    exit();
-}
+require_once 'auth.php';
 
 ?>
 <!DOCTYPE html>
@@ -39,7 +30,6 @@ if ($_SESSION['user_statut'] === 'en_attente') {
   </head>
   <body>
 
-    <!-- Admin Sidebar -->
     <aside class="admin-sidebar">
       <div class="sidebar-logo">
         <img src="images/logoClub.png" alt="Logo Club">
@@ -54,19 +44,23 @@ if ($_SESSION['user_statut'] === 'en_attente') {
         <a href="stock.php" class="sidebar-link" title="Stock">
           <i class="bi bi-box-seam-fill"></i>
         </a>
-        <a href="mouvements.php" class="sidebar-link" title="Mouvements">
-          <i class="bi bi-arrow-left-right"></i>
-        </a>
-        <a href="vente.php" class="sidebar-link" title="Vente">
-          <i class="bi bi-cart-fill"></i>
-        </a>
-        
-        <a href="user.php" class="sidebar-link" title="Utilisateurs">
-          <i class="bi bi-person-circle"></i>
-        </a>
-        <a href="statistique.php" class="sidebar-link" title="Statistiques">
-          <i class="bi bi-bar-chart-fill"></i>
-        </a>
+
+        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+
+          <a href="mouvements.php" class="sidebar-link" title="Mouvements">
+            <i class="bi bi-arrow-left-right"></i>
+          </a>
+          <a href="vente.php" class="sidebar-link" title="Vente">
+            <i class="bi bi-cart-fill"></i>
+          </a>
+          
+          <a href="user.php" class="sidebar-link" title="Utilisateurs">
+            <i class="bi bi-person-circle"></i>
+          </a>
+          <a href="statistique.php" class="sidebar-link" title="Statistiques">
+            <i class="bi bi-bar-chart-fill"></i>
+          </a>
+        <?php endif; ?>
         
         <div class="dropup d-md-none">
           <button class="sidebar-user-btn" id="userMenuMobile" data-bs-toggle="dropdown" aria-expanded="false" title="Profil">
@@ -152,8 +146,10 @@ if ($_SESSION['user_statut'] === 'en_attente') {
       </defs>
     </svg>
 
-    <div class="col py-4 px-4">
-      <h3 class="mb-4">Les commandes</h3>
+    <div class="col py-4 px-3 px-md-4">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <h3 class="mb-0">Les commandes</h3>
+      </div>
         <div class="row g-4">
           
           <div class="col-12 col-lg-4">
@@ -178,8 +174,7 @@ if ($_SESSION['user_statut'] === 'en_attente') {
           </div>
 
         </div>
-          
-          
+    </div>
 
     <div id="footer-bottom">
       <div class="container-fluid">
@@ -193,7 +188,20 @@ if ($_SESSION['user_statut'] === 'en_attente') {
         </div>
       </div>
     </div>
+    <nav class="mobile-bottom-nav">
+      <a href="index.php" class="mobile-bottom-nav__item" title="Caisse"><i class="bi bi-house-door-fill"></i></a>
+      <a href="commande.php" class="mobile-bottom-nav__item active" title="Commandes"><i class="bi bi-receipt-cutoff"></i></a>
+      <a href="stock.php" class="mobile-bottom-nav__item" title="Stock"><i class="bi bi-box-seam-fill"></i></a>
+      <a href="mouvements.php" class="mobile-bottom-nav__item" title="Mouvements"><i class="bi bi-arrow-left-right"></i></a>
+      <a href="vente.php" class="mobile-bottom-nav__item" title="Transactions"><i class="bi bi-cash-stack"></i></a>
+      <a href="user.php" class="mobile-bottom-nav__item" title="Utilisateurs"><i class="bi bi-people-fill"></i></a>
+      <a href="statistique.php" class="mobile-bottom-nav__item" title="Statistiques"><i class="bi bi-bar-chart-fill"></i></a>
+      <a href="api/deco.php" class="mobile-bottom-nav__item" title="Profil / Déconnexion"><i class="bi bi-person-circle"></i></a>
+    </nav>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="js/commande.js"></script>
 
   </body>

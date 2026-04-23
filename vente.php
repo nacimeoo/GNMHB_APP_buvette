@@ -1,22 +1,7 @@
 <?php
 session_start();
+require_once 'auth.php';
 
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
-    exit();
-}
-
-if ($_SESSION['user_statut'] === 'en_attente') {
-    header('Location: attente.php');
-    exit();
-}
-
-
-if ($_SESSION['user_role'] === 'user') {
-    header('Location: index.php');
-    exit();
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -59,6 +44,9 @@ if ($_SESSION['user_role'] === 'user') {
         <a href="stock.php" class="sidebar-link" title="Stock">
           <i class="bi bi-box-seam-fill"></i>
         </a>
+
+        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+
         <a href="mouvements.php" class="sidebar-link" title="Mouvements">
           <i class="bi bi-arrow-left-right"></i>
         </a>
@@ -72,6 +60,8 @@ if ($_SESSION['user_role'] === 'user') {
         <a href="statistique.php" class="sidebar-link" title="Statistiques">
           <i class="bi bi-bar-chart-fill"></i>
         </a>
+
+        <?php endif; ?>   
         
         <div class="dropup d-md-none">
           <button class="sidebar-user-btn" id="userMenuMobile" data-bs-toggle="dropdown" aria-expanded="false" title="Profil">
@@ -224,21 +214,35 @@ if ($_SESSION['user_role'] === 'user') {
 
     <div class="stock-table-wrapper">
       <div class="stock-table-header">
-        <h5 class="stock-table-title">
-          <i class="bi bi-box-seam-fill me-2"></i>Les transactions
-        </h5>
+        <div class="d-flex align-items-center justify-content-between w-100 flex-wrap gap-2">
+          <h5 class="stock-table-title mb-0">
+            <i class="bi bi-box-seam-fill me-2"></i>Les transactions
+          </h5>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button class="btn btn-sm btn-success" onclick="ouvrirModalPaiement()">
+              <i class="bi bi-wallet2 me-1"></i> Payer
+            </button>
+            <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
+              <input class="form-check-input" type="checkbox" role="switch" id="filtreImpayes" onchange="chargerCommandes()" style="cursor: pointer;">
+              <label class="form-check-label" for="filtreImpayes" style="cursor: pointer;"><strong>Afficher uniquement les impayés</strong></label>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="table-responsive">
         <table class="table stock-table align-middle mb-0">
           <thead>
             <tr>
+              <th style="width: 40px;">
+                <input type="checkbox" id="selectAll" onclick="cocherToutesLesLignes(this)">
+              </th>
               <th>Date</th>
               <th>ticket</th>
+              <th>Client</th>
               <th>Montant</th>
               <th>Moyen de paiement</th>
               <th>Statut</th>
-              <th class="text-end">Action</th>
             </tr>
           </thead>
           <tbody id="transactionsTableBody">
@@ -263,6 +267,40 @@ if ($_SESSION['user_role'] === 'user') {
         </div>
       </div>
     </div>
+    <nav class="mobile-bottom-nav">
+      <a href="index.php" class="mobile-bottom-nav__item" title="Caisse"><i class="bi bi-house-door-fill"></i></a>
+      <a href="commande.php" class="mobile-bottom-nav__item" title="Commandes"><i class="bi bi-receipt-cutoff"></i></a>
+      <a href="stock.php" class="mobile-bottom-nav__item" title="Stock"><i class="bi bi-box-seam-fill"></i></a>
+      <a href="mouvements.php" class="mobile-bottom-nav__item" title="Mouvements"><i class="bi bi-arrow-left-right"></i></a>
+      <a href="vente.php" class="mobile-bottom-nav__item active" title="Transactions"><i class="bi bi-cash-stack"></i></a>
+      <a href="user.php" class="mobile-bottom-nav__item" title="Utilisateurs"><i class="bi bi-people-fill"></i></a>
+      <a href="statistique.php" class="mobile-bottom-nav__item" title="Statistiques"><i class="bi bi-bar-chart-fill"></i></a>
+      <a href="api/deco.php" class="mobile-bottom-nav__item" title="Profil / Déconnexion"><i class="bi bi-person-circle"></i></a>
+    </nav>
+
+    <div class="modal fade" id="modalPaiementGroupe" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold">Régler les commandes</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+          </div>
+          <div class="modal-body text-center pt-2 pb-4">
+            <p class="text-muted mb-4">Comment souhaitez-vous encaisser ces <strong id="countCommandesSelectionnees">0</strong> commande(s) ?</p>
+            <p class="fs-4 fw-bold mb-4" id="montantTotalSelectionne">0€</p>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-dark px-4 py-3 rounded-4" onclick="validerPaiementGroupe('CB')">
+                    <i class="bi bi-credit-card-fill fs-2 d-block mb-2"></i> Carte
+                </button>
+                <button class="btn btn-outline-dark px-4 py-3 rounded-4" onclick="validerPaiementGroupe('Espèce')">
+                    <i class="bi bi-cash-coin fs-2 d-block mb-2"></i> Espèces
+                </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="js/jquery-1.11.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>

@@ -1,22 +1,8 @@
 <?php
 session_start();
 
+require_once 'auth.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
-    exit();
-}
-
-if ($_SESSION['user_statut'] === 'en_attente') {
-    header('Location: attente.php');
-    exit();
-}
-
-
-if ($_SESSION['user_role'] === 'user') {
-    header('Location: index.php');
-    exit();
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -59,6 +45,9 @@ if ($_SESSION['user_role'] === 'user') {
         <a href="stock.php" class="sidebar-link" title="Stock">
           <i class="bi bi-box-seam-fill"></i>
         </a>
+
+        <?php if ($_SESSION['user_role'] === 'admin'): ?>
+
         <a href="mouvements.php" class="sidebar-link" title="Mouvements">
           <i class="bi bi-arrow-left-right"></i>
         </a>
@@ -72,6 +61,8 @@ if ($_SESSION['user_role'] === 'user') {
         <a href="statistique.php" class="sidebar-link" title="Statistiques">
           <i class="bi bi-bar-chart-fill"></i>
         </a>
+
+        <?php endif; ?>
         
         <div class="dropup d-md-none">
           <button class="sidebar-user-btn" id="userMenuMobile" data-bs-toggle="dropdown" aria-expanded="false" title="Profil">
@@ -227,9 +218,59 @@ if ($_SESSION['user_role'] === 'user') {
         </div>
       </div>
     </div>
+    <nav class="mobile-bottom-nav">
+      <a href="index.php" class="mobile-bottom-nav__item" title="Caisse"><i class="bi bi-house-door-fill"></i></a>
+      <a href="commande.php" class="mobile-bottom-nav__item" title="Commandes"><i class="bi bi-receipt-cutoff"></i></a>
+      <a href="stock.php" class="mobile-bottom-nav__item" title="Stock"><i class="bi bi-box-seam-fill"></i></a>
+      <a href="mouvements.php" class="mobile-bottom-nav__item" title="Mouvements"><i class="bi bi-arrow-left-right"></i></a>
+      <a href="vente.php" class="mobile-bottom-nav__item" title="Transactions"><i class="bi bi-cash-stack"></i></a>
+      <a href="user.php" class="mobile-bottom-nav__item active" title="Utilisateurs"><i class="bi bi-people-fill"></i></a>
+      <a href="statistique.php" class="mobile-bottom-nav__item" title="Statistiques"><i class="bi bi-bar-chart-fill"></i></a>
+      <a href="api/deco.php" class="mobile-bottom-nav__item" title="Profil / Déconnexion"><i class="bi bi-person-circle"></i></a>
+    </nav>
+
+    <div class="modal fade" id="modalModifierUser" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-pencil-fill me-2"></i>Modifier l'utilisateur</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="edit-user-id">
+            <div class="mb-3">
+              <label class="form-label">Prénom</label>
+              <input type="text" class="form-control" id="edit-prenom">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Nom</label>
+              <input type="text" class="form-control" id="edit-nom">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="edit-email">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Rôle</label>
+              <select class="form-select" id="edit-role">
+                <option value="benevole">Bénévole</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+            <button type="button" class="btn btn-primary" id="btn-sauvegarder-user">
+              <i class="bi bi-floppy-fill me-1"></i>Sauvegarder
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="js/jquery-1.11.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="shah384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
     <script src="js/plugins.js"></script>
     <script src="js/script.js"></script>
     <script src="js/user.js"></script>

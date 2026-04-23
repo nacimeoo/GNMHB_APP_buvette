@@ -1,5 +1,5 @@
 window.chargerStock = function() {
-    const conteneurStock = document.getElementById('stock-produits');
+    const conteneurStock = document.getElementById('stock-container');
     const totalStock = document.getElementById('total-stock-valeur');
     const valeurStock = document.getElementById('valeur-stock-valeur');
     const stockBon = document.getElementById('stock-bon-valeur');
@@ -26,44 +26,91 @@ window.chargerStock = function() {
                     return;
                 }
 
-                produits.forEach(produit => {
-                    const qte = produit.quantite;
-                    const statutHTML = qte > 40
-                        ? '<span class="stock-status stock-status--bon">En stock</span>'
-                        : qte > 10
-                            ? '<span class="stock-status stock-status--bas">Mauvais</span>'
-                            : '<span class="stock-status stock-status--critique">Critique</span>';
-
-                    const datePerem = produit.datePeremption ?? 'N/A';
-
-                    const nomEscaped = produit.nomProduit.replace(/'/g, "\\'");
-                    const imageEscaped = (produit.image ?? '').replace(/'/g, "\\'");
-
-                    const stockHTML = `
-                        <tr>
-                            <td><img src="${produit.image ?? ''}" alt="${produit.nomProduit}" style="width: 50px; height: auto;"></td>
-                            <td>${produit.nomProduit}</td>
-                            <td>${produit.nomCategorie}</td>
-                            <td>${produit.Prix} €</td>
-                            <td>${qte}</td>
-                            <td>${datePerem}</td>
-                            <td>${statutHTML}</td>
-                            <td>
-                                <button
-                                    onclick="ouvrirModalModif(${produit.idproduit}, '${nomEscaped}', ${produit.idSousCategorie}, ${produit.Prix}, ${qte}, '${imageEscaped}')"
-                                    class="btn stock-btn-edit btn-sm">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <button
-                                    onclick="supprimerProduit(${produit.idproduit})"
-                                    class="btn stock-btn-delete btn-sm">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                    conteneurStock.innerHTML += stockHTML;
+                const produitsParEntrepot = {};
+                produits.forEach(p => {
+                    const nomEntrepot = p.nomEntrepot || 'Entrepôt inconnu';
+                    if (!produitsParEntrepot[nomEntrepot]) {
+                        produitsParEntrepot[nomEntrepot] = [];
+                    }
+                    produitsParEntrepot[nomEntrepot].push(p);
                 });
+
+                for (const [nomEntrepot, listeProduits] of Object.entries(produitsParEntrepot)) {
+                    let htmlTable = `
+                    <div class="stock-table-wrapper mb-4">
+                        <div class="stock-table-header">
+                            <h5 class="stock-table-title">
+                                <i class="bi bi-box-seam-fill me-2"></i>Stock - ${nomEntrepot}
+                            </h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table stock-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Image</th>
+                                        <th>Produit</th>
+                                        <th>Catégorie</th>
+                                        <th>Prix de vente</th>
+                                        <th>Quantité</th>
+                                        <th>Date de péremption</th>
+                                        <th>Statut</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    listeProduits.forEach(produit => {
+                        const qte = parseInt(produit.quantite) || 0;
+                        const statutHTML = qte > 40
+                            ? '<span class="stock-status stock-status--bon">En stock</span>'
+                            : qte > 10
+                                ? '<span class="stock-status stock-status--bas">Mauvais</span>'
+                                : '<span class="stock-status stock-status--critique">Critique</span>';
+
+                        const datePerem = produit.datePeremption ?? 'N/A';
+                        const imageSrc  = produit.image ?? produit.Image ?? '';
+                        const categorie = produit.nomCategorie ?? produit.nomSousCategorie ?? '—';
+                        const prix      = parseFloat(produit.Prix) || 0;
+
+                        const nomEscaped   = (produit.nomProduit ?? '').replace(/'/g, "\\'");
+                        const imageEscaped = imageSrc.replace(/'/g, "\\'");
+                        const idSC         = produit.idSousCategorie ?? 1;
+
+                        htmlTable += `
+                            <tr>
+                                <td><img src="${imageSrc}" alt="${produit.nomProduit ?? ''}" style="width:50px;height:50px;object-fit:contain;border-radius:6px;background:#f9f9f9;"></td>
+                                <td class="fw-semibold">${produit.nomProduit ?? '—'}</td>
+                                <td>${categorie}</td>
+                                <td>${prix.toFixed(2)} €</td>
+                                <td>${qte}</td>
+                                <td>${datePerem}</td>
+                                <td>${statutHTML}</td>
+                                <td>
+                                    <button
+                                        onclick="ouvrirModalModif(${produit.idproduit}, '${nomEscaped}', ${idSC}, ${prix}, ${qte}, '${imageEscaped}')"
+                                        class="btn stock-btn-edit btn-sm">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button
+                                        onclick="supprimerProduit(${produit.idproduit})"
+                                        class="btn stock-btn-delete btn-sm">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    htmlTable += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    `;
+                    
+                    conteneurStock.innerHTML += htmlTable;
+                }
             })
             .catch(error => {
                 console.error('Erreur :', error);
@@ -106,7 +153,6 @@ window.ouvrirModalModif = function(id, nom, idSousCategorie, prix, quantite, ima
 document.addEventListener('DOMContentLoaded', () => {
     window.chargerStock();
 
-    // ── Autocomplete ──────────────────────────────────────────────
     const inputNom      = document.getElementById('nomProduit');
     const listAuto      = document.getElementById('autocomplete-list');
     const cacheId       = document.getElementById('idProduitCache');
@@ -156,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Si l'utilisateur retape après avoir sélectionné un produit, on réinitialise
             if (cacheId.value) {
                 cacheId.value = '';
                 infoConnu.classList.add('d-none');
@@ -185,7 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 listAuto.appendChild(li);
                             });
 
-                            // Option pour forcer la création d'un nouveau produit
                             const liNouv = document.createElement('li');
                             liNouv.className = 'list-group-item list-group-item-action text-dark';
                             liNouv.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Ajouter "<em>' + q + '</em>" comme nouveau produit';
@@ -198,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 250);
         });
 
-        // Fermer la liste si clic ailleurs
         document.addEventListener('click', (e) => {
             if (!inputNom.contains(e.target) && !listAuto.contains(e.target)) {
                 listAuto.style.display = 'none';
@@ -206,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Réinitialiser le formulaire à l'ouverture du modal
     const modalEl = document.getElementById('modalAjoutProduit');
     if (modalEl) {
         modalEl.addEventListener('show.bs.modal', () => {
@@ -215,7 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ── Sauvegarde ────────────────────────────────────────────────
     const btnSauvegarder = document.getElementById('btn-sauvegarder-produit');
     if (btnSauvegarder) {
         btnSauvegarder.addEventListener('click', () => {
@@ -230,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Produit inconnu : valider les champs supplémentaires
             if (!idProduit) {
                 if (!estNouv) {
                     alert('Veuillez sélectionner un produit dans la liste ou créer un nouveau produit.');
@@ -331,3 +371,83 @@ function calculerStockMauvais() {
 function calculerStockCritique() {
     return (window.produitCharge || []).filter(p => p.quantite <= 10).length;
 }
+
+
+
+function initEventCarousel() {
+    fetch('api/getEvenementStats.php')
+    .then(response => response.json())
+    .then(data => {
+        const wrapper = document.getElementById('event-carousel-wrapper');
+        if(!wrapper) return;
+
+        wrapper.innerHTML = '';
+
+        data.forEach(event => {
+            let consosHtml = '';
+            
+            if(event.consos.length > 0) {
+                event.consos.forEach(c => {
+                    consosHtml += `
+                        <li class="conso-item">
+                            <span class="conso-name">${c.produit}</span>
+                            <span class="conso-qty">-${c.qte}</span>
+                        </li>`;
+                });
+            } else {
+                consosHtml = `<li class="conso-item text-muted justify-content-center border-0">Aucune consommation</li>`;
+            }
+
+            const dateObj = new Date(event.date);
+            const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+            const slide = `
+            <div class="swiper-slide">
+                <div class="event-card">
+                    <div class="event-card-header">
+                        <h6 class="event-title text-truncate" title="${event.nom}"> ${event.nom}</h6>
+                        <span class="event-date">${dateStr}</span>
+                    </div>
+                    <div class="event-card-body">
+                        <ul class="conso-list">
+                            ${consosHtml}
+                        </ul>
+                    </div>
+                    <div class="event-card-footer">
+                        <span class="footer-label">CA Total</span>
+                        <span class="footer-value">${parseFloat(event.caTotal).toFixed(2)} €</span>
+                    </div>
+                </div>
+            </div>`;
+            
+            wrapper.innerHTML += slide;
+        });
+
+        const swiper = new Swiper('.eventSwiper', {
+            slidesPerView: 1.2,
+            spaceBetween: 20,
+            centeredSlides: true,
+            initialSlide: Math.max(0, data.length - 1),
+            grabCursor: true,
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+                dynamicBullets: true,
+            },
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            breakpoints: {
+                576: { slidesPerView: 2, centeredSlides: false },
+                768: { slidesPerView: 2.5, centeredSlides: true },
+                1024: { slidesPerView: 3.5, centeredSlides: true }
+            }
+        });
+    })
+    .catch(err => console.error("Erreur lors du chargement des statistiques d'événements", err));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initEventCarousel();
+});

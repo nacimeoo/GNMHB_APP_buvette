@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 require 'db.php';
 
-$sql = "SELECT c.idCommande, c.numTicket, c.date, c.Montant, 
+$sql = "SELECT c.idCommande, c.numTicket, c.date, c.Montant, c.etatPaiement, 
                lc.quantite, p.nomProduit, p.Prix, p.image, p.typeCategorie
         FROM Commande c
         INNER JOIN ligne_commande lc ON c.idCommande = lc.idCommande
@@ -23,6 +23,7 @@ foreach ($lignes as $ligne) {
             'idCommande' => $id,
             'numTicket' => $ligne['numTicket'],
             'date' => $ligne['date'],
+            'etatPaiement' => $ligne['etatPaiement'],
             'totalItems' => 0,
             'produits' => []
         ];

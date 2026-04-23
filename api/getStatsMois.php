@@ -2,15 +2,31 @@
 header('Content-Type: application/json');
 require_once 'db.php';
 
-$stmt = $pdo->query("
+$stmtVente = $pdo->query("
     SELECT
-        COUNT(*) AS nbCommandes,
-        COALESCE(SUM(montant), 0) AS totalEncaisse,
-        COALESCE(SUM(CASE WHEN modePAIEMENT = 'CB' THEN montant ELSE 0 END), 0) AS totalCB,
-        COALESCE(SUM(CASE WHEN modePAIEMENT = 'Espece' THEN montant ELSE 0 END), 0) AS totalEspece,
-        COALESCE(SUM(CASE WHEN modePAIEMENT = 'Credit' THEN montant ELSE 0 END), 0) AS totalImpayes
+        COALESCE(SUM(Montant), 0)          AS totalVente,
+        COUNT(*)                            AS nbCommandes,
+        COUNT(DISTINCT idUtilisateur)       AS nbClients
     FROM Commande
     WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())
 ");
+$vente = $stmtVente->fetch(PDO::FETCH_ASSOC);
 
-echo json_encode($stmt->fetch(PDO::FETCH_ASSOC));
+$stmtDepense = $pdo->query("
+    SELECT COALESCE(SUM(montantTotal), 0) AS totalDepense
+    FROM BonEntree
+    WHERE MONTH(dateBon) = MONTH(CURDATE()) AND YEAR(dateBon) = YEAR(CURDATE())
+");
+$depense = $stmtDepense->fetch(PDO::FETCH_ASSOC);
+
+$totalVente   = round((float)$vente['totalVente'],   2);
+$totalDepense = round((float)$depense['totalDepense'], 2);
+$totalBenef   = round($totalVente - $totalDepense, 2);
+
+echo json_encode([
+    'totalVente'   => $totalVente,
+    'totalDepense' => $totalDepense,
+    'totalBenef'   => $totalBenef,
+    'nbClients'    => (int)$vente['nbClients'],
+    'nbCommandes'  => (int)$vente['nbCommandes'],
+]);

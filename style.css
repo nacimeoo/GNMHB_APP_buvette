@@ -834,6 +834,135 @@ h1,h2,h3,h4,h5,h6 {
   border-color: #FFC43F;
 }
 
+.eventSwiper {
+    padding-bottom: 50px; 
+    padding-top: 15px;
+}
+
+/* Animations et mise en valeur du slide central */
+.eventSwiper .swiper-slide {
+    height: auto;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5; /* Plus transparent sur les côtés */
+}
+.eventSwiper .swiper-slide-active {
+    transform: scale(1.05);
+    opacity: 1;
+    z-index: 2;
+}
+
+/* Design de la carte (similaire à .stat-card) */
+.event-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid #f0f0f0;
+}
+
+.event-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.event-title {
+    margin: 0;
+    font-weight: 700;
+    color: #333;
+    font-size: 1.05rem;
+}
+
+.event-date {
+    font-size: 0.8rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* Zone de la liste avec scroll discret */
+.event-card-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: 200px;
+    margin-bottom: 15px;
+    padding-right: 5px;
+}
+.event-card-body::-webkit-scrollbar {
+    width: 4px;
+}
+.event-card-body::-webkit-scrollbar-thumb {
+    background: #e0e0e0;
+    border-radius: 4px;
+}
+
+/* Liste des produits */
+.conso-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.conso-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed #eaeaea;
+}
+.conso-item:last-child {
+    border-bottom: none;
+}
+
+.conso-name {
+    font-size: 0.9rem;
+    color: #555;
+    font-weight: 600;
+}
+
+.conso-qty {
+    font-weight: 700;
+    color: #d9534f; /* Rouge doux pour la sortie de stock */
+    background: rgba(217, 83, 79, 0.1);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+/* Pied de page de la carte (Chiffre d'affaires) */
+.event-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fbff; /* Fond légèrement bleuté */
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: auto;
+    border: 1px solid #eef3fb;
+}
+
+.footer-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: #6c757d;
+    letter-spacing: 0.5px;
+}
+
+.footer-value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #198754; /* Vert succès */
+}
+
 /*----------------------------------------------*/
 /* ADMIN SIDEBAR
 /*----------------------------------------------*/
@@ -879,7 +1008,8 @@ h1,h2,h3,h4,h5,h6 {
   gap: 6px;
 }
 
-.sidebar-link {
+.sidebar-link,
+.sidebar-user-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -890,9 +1020,14 @@ h1,h2,h3,h4,h5,h6 {
   text-decoration: none;
   transition: background 0.25s ease, color 0.25s ease;
   font-size: 20px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
-.sidebar-link:hover {
+.sidebar-link:hover,
+.sidebar-user-btn:hover {
   background: rgba(255, 196, 63, 0.15);
   color: #FFC43F;
 }
@@ -902,9 +1037,87 @@ h1,h2,h3,h4,h5,h6 {
   color: #FFC43F;
 }
 
+/* Dropdown profil sidebar */
+.user-mini-modal {
+  background: #1a2235 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.4) !important;
+  min-width: 180px;
+  padding: 6px 0 !important;
+  left: 10px !important;
+}
+
+.user-mini-modal__info {
+  padding: 10px 14px 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.user-mini-modal .dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.user-mini-modal .dropdown-item {
+  color: rgba(255, 255, 255, 0.75) !important;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  margin: 2px 6px;
+  width: calc(100% - 12px);
+  transition: background 0.2s;
+}
+
+.user-mini-modal .dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+.user-mini-modal .dropdown-item.text-danger {
+  color: #ff7b7b !important;
+}
+
+.user-mini-modal .dropdown-item.text-danger:hover {
+  background: rgba(255, 80, 80, 0.15) !important;
+  color: #ff9999 !important;
+}
+
+.user-mini-modal .dropdown-item.text-success {
+  color: #7bffb0 !important;
+}
+
 /* Décale le contenu pour ne pas le cacher derrière la sidebar */
 body {
   padding-left: 65px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Uniquement sur la page index : espace pour le panier fixe à droite */
+body.page-index {
+  padding-right: 360px;
+}
+
+/* Bouton fermer du panier — caché sur desktop, visible sur mobile */
+.cart-close-mobile {
+  display: none;
+}
+
+/* Panier toujours visible à droite */
+.cart-sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: 360px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  z-index: 1050;
+  box-shadow: -3px 0 18px rgba(0, 0, 0, 0.10);
+  border-left: 1px solid #f0f0f0;
 }
 
 /* Le preloader reste plein écran (il est fixed) */
@@ -913,7 +1126,7 @@ body {
   width: 100% !important;
 }
 .container-fluid {
-  max-width: 1600px;
+  max-width: 100%;
 }
 .banner-blocks {
   display: grid;
@@ -1136,10 +1349,18 @@ body {
   background: #F9F9F9;
   border-radius: 12px;
   text-align: center;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 10px;
 }
 .product-item figure img {
-  max-height: 210px;
-  height: auto;
+  max-height: 145px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
 }
 .product-item .btn-wishlist {
   position: absolute;
@@ -1210,6 +1431,55 @@ body {
   border-radius: 6px;
   color: #222;
   padding: 0;
+}
+
+/* Badge rupture de stock — superposé sur l'image, ne décale pas la carte */
+.product-item__rupture-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Carte en rupture légèrement assombrie */
+.product-item--rupture {
+  opacity: 0.75;
+}
+
+/* Bouton ajouter au panier — couleurs du club */
+.btn-add-cart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #1a2235;
+  color: #FFC43F;
+  border: 2px solid #1a2235;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.btn-add-cart:hover:not(:disabled) {
+  background: #FFC43F;
+  color: #1a2235;
+  border-color: #FFC43F;
+}
+.btn-add-cart:disabled {
+  background: #e0e0e0;
+  color: #aaa;
+  border-color: #e0e0e0;
+  cursor: not-allowed;
 }
 
 /* cart */
@@ -1285,5 +1555,361 @@ body {
 @media screen and (min-width:1200px) {
   .product-thumbnail-slider {
     height: 740px;
+  }
+}
+
+/*----------------------------------------------*/
+/* MOBILE BOTTOM NAV
+/*----------------------------------------------*/
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 58px;
+  background: #1a2235;
+  z-index: 1090;
+  align-items: stretch;
+  justify-content: space-around;
+  box-shadow: 0 -3px 20px rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.mobile-bottom-nav__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+  cursor: pointer;
+  background: none;
+  border: none;
+  position: relative;
+  min-width: 0;
+}
+
+.mobile-bottom-nav__item i {
+  font-size: 1.25rem;
+}
+
+.mobile-bottom-nav__item.active {
+  color: #FFC43F;
+  background: rgba(255, 196, 63, 0.1);
+}
+
+.mobile-bottom-nav__item:hover {
+  color: #FFC43F;
+}
+
+/*----------------------------------------------*/
+/* MOBILE CART FAB (bouton flottant haut-droite)
+/*----------------------------------------------*/
+.mobile-cart-fab {
+  display: none;
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #1a2235;
+  color: #FFC43F;
+  border: none;
+  z-index: 1080;
+  font-size: 1.15rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.mobile-cart-fab:active {
+  transform: scale(0.92);
+}
+
+/* Badge sur le FAB */
+.mobile-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #FFC43F;
+  color: #1a2235;
+  font-size: 0.6rem;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 4px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+/*----------------------------------------------*/
+/* MOBILE CART OVERLAY
+/*----------------------------------------------*/
+#cart-mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1048;
+  backdrop-filter: blur(2px);
+}
+
+#cart-mobile-overlay.active {
+  display: block;
+}
+
+/*----------------------------------------------*/
+/* RESPONSIVE MOBILE  ≤ 767px
+/*----------------------------------------------*/
+@media (max-width: 767px) {
+
+  /* Masquer la sidebar verticale */
+  .admin-sidebar {
+    display: none;
+  }
+
+  /* Afficher la bottom nav et le FAB */
+  .mobile-bottom-nav {
+    display: flex;
+  }
+
+  .mobile-cart-fab {
+    display: flex;
+  }
+
+  /* Supprimer les paddings desktop */
+  body {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 66px;
+  }
+
+  /* Bouton fermer du panier — visible sur mobile */
+  .cart-close-mobile {
+    display: flex;
+  }
+
+  /* Panier : drawer depuis le bas */
+  .cart-sidebar {
+    width: 100% !important;
+    height: calc(88vh - 58px);
+    top: auto !important;
+    bottom: 58px;
+    right: 0;
+    left: 0;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(110%);
+    transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 0 -10px 50px rgba(0, 0, 0, 0.25);
+    z-index: 1049;
+  }
+
+  .cart-sidebar.cart-mobile-open {
+    transform: translateY(0);
+  }
+
+  /* Grille produits : 2 colonnes sur mobile */
+  #liste-produits.row-cols-3 > * {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+  }
+
+  /* Images plus petites sur mobile */
+  .product-item figure {
+    height: 110px;
+  }
+
+  .product-item figure img {
+    max-height: 100px;
+  }
+
+  .product-item .price {
+    font-size: 1rem;
+  }
+
+  /* Header catégories scrollable */
+  .header-cat-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+
+  .header-cat-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-cat-item {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Masquer le bouton panier desktop dans le header */
+  .cart-header-btn {
+    display: none !important;
+  }
+
+  /* Footer */
+  #footer-bottom {
+    display: none;
+  }
+}
+
+/* Footer compact */
+#footer-bottom {
+  margin-top: auto;
+  padding: 6px 0;
+  background: #f8f8f8;
+  border-top: 1px solid #e0e0e0;
+  color: #888;
+  font-size: 11px;
+  line-height: 1.4;
+}
+#footer-bottom .copyright p,
+#footer-bottom .credit-link p {
+  margin: 0;
+  font-size: 11px;
+  color: #888;
+}
+#footer-bottom a {
+  color: #666;
+  text-decoration: none;
+}
+#footer-bottom a:hover {
+  color: #333;
+}
+
+/* ============================================================
+   RESPONSIVE IMPROVEMENTS
+   ============================================================ */
+
+/* ── Tablette : 768px–991px ─────────────────────────────── */
+@media (min-width: 768px) and (max-width: 991px) {
+
+  /* Réduire la largeur du panier pour libérer de l'espace */
+  .cart-sidebar {
+    width: 260px;
+  }
+  body.page-index {
+    padding-right: 260px;
+  }
+
+  /* Grille produits : 2 colonnes sur tablette (3 = trop étroit) */
+  #liste-produits.row-cols-3 > * {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+  }
+
+  /* Stats : 2 colonnes max sur tablette étroite */
+  .stock-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stock-stats-grid--5 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Réduire les marges et paddings sur tablette */
+  .stock-stats-grid,
+  .stock-stats-grid--5 {
+    padding: 20px 20px 0;
+  }
+  .stock-table-wrapper {
+    margin: 20px 20px 30px;
+  }
+}
+
+/* ── Mobile additionnel : ≤767px ────────────────────────── */
+@media (max-width: 767px) {
+
+  /* Réduire padding de la grille stats */
+  .stock-stats-grid,
+  .stock-stats-grid--5 {
+    padding: 14px 12px 0;
+  }
+
+  /* Réduire marge du tableau wrapper */
+  .stock-table-wrapper {
+    margin: 14px 10px 20px;
+  }
+
+  /* Header du tableau : permettre le retour à la ligne */
+  .stock-table-header {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Réduire padding des cellules tableau sur mobile */
+  .stock-table thead th,
+  .stock-table tbody td {
+    padding: 10px 10px;
+    font-size: 0.82rem;
+  }
+
+  /* Image stock plus petite sur mobile */
+  .stock-img {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Commande.php : réduire le padding horizontal */
+  .col.py-4.px-4 {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* Statistiques : charts stack proprement */
+  .col-lg-8,
+  .col-lg-4 {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+/* ── Très petits écrans : ≤480px ────────────────────────── */
+@media (max-width: 480px) {
+
+  /* Stats en 1 seule colonne sur iPhone SE / petits Android */
+  .stock-stats-grid,
+  .stock-stats-grid--5 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Valeur stat plus petite */
+  .stat-card__value {
+    font-size: 1.15rem;
+  }
+
+  /* Grille produits : 1 colonne sur très petits écrans */
+  #liste-produits.row-cols-3 > * {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Header de tableau encore plus compact */
+  .stock-table-header {
+    padding: 10px 12px;
+  }
+
+  /* Carte produit plus compacte */
+  .product-item figure {
+    height: 90px;
+  }
+  .product-item figure img {
+    max-height: 80px;
+  }
+  .product-item h3 {
+    font-size: 14px;
+  }
+  .product-item .price {
+    font-size: 0.9rem;
   }
 }

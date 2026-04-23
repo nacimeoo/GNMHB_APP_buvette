@@ -1,18 +1,8 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.html');
-    exit();
-}
-if ($_SESSION['user_statut'] === 'en_attente') {
-    header('Location: attente.php');
-    exit();
-}
-if ($_SESSION['user_role'] === 'user') {
-    header('Location: index.php');
-    exit();
-}
+require_once 'auth.php';
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -31,10 +21,8 @@ if ($_SESSION['user_role'] === 'user') {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
   <style>
-    /* ── Required asterisk ── */
     .lbl-req::after { content: ' *'; color: #e74c3c; }
 
-    /* ── Product lines ── */
     .ligne-produit {
       background: #f8f9fb;
       border: 1.5px solid #e8eaf0;
@@ -44,7 +32,6 @@ if ($_SESSION['user_role'] === 'user') {
     }
     .ligne-produit:last-child { margin-bottom: 0; }
 
-    /* ── Autocomplete dropdown ── */
     .dropdown-auto {
       position: absolute;
       top: 100%; left: 0;
@@ -66,7 +53,6 @@ if ($_SESSION['user_role'] === 'user') {
     }
     .dropdown-auto .item-nouveau:hover { background: #fdf4d9; }
 
-    /* ── Info produit sélectionné ── */
     .info-produit-connu {
       background: #eaf3ff;
       border: 1px solid #b8d4f5;
@@ -76,7 +62,6 @@ if ($_SESSION['user_role'] === 'user') {
       font-size: .82rem;
     }
 
-    /* ── Nouveau produit panel ── */
     .nouveau-produit-panel {
       background: #fffbf0;
       border: 1.5px solid #c9a84c;
@@ -93,7 +78,6 @@ if ($_SESSION['user_role'] === 'user') {
       margin-bottom: 10px;
     }
 
-    /* ── Total row ── */
     .total-row {
       background: #f8f9fb;
       border: 1.5px solid #e8eaf0;
@@ -108,7 +92,6 @@ if ($_SESSION['user_role'] === 'user') {
     .total-row label { font-weight: 700; color: #1a2235; margin: 0; white-space: nowrap; }
     .total-row input { max-width: 180px; }
 
-    /* ── Buttons ── */
     .btn-navy {
       background: #1a2235;
       color: #fff;
@@ -133,7 +116,6 @@ if ($_SESSION['user_role'] === 'user') {
     .btn-gold:hover:not(:disabled) { background: #b5943e; color: #fff; }
     .btn-gold:disabled { background: #d8c38b; cursor: not-allowed; }
 
-    /* ── Badges mouvements ── */
     .badge-mvt {
       display: inline-block;
       padding: 3px 10px;
@@ -147,7 +129,6 @@ if ($_SESSION['user_role'] === 'user') {
     .badge-PERTE     { background: #fff3cd; color: #856404; }
     .badge-CORRECTIF { background: #d1ecf1; color: #0c5460; }
 
-    /* ── Toast ── */
     .mvt-toast {
       position: fixed;
       top: 22px; right: 22px;
@@ -168,7 +149,6 @@ if ($_SESSION['user_role'] === 'user') {
     .mvt-toast--error   { background: #fdecea; color: #922b21; border-left: 4px solid #e74c3c; }
     @keyframes slideIn { from { transform: translateX(28px); opacity:0; } to { transform: translateX(0); opacity:1; } }
 
-    /* ── Column header hint (desktop) ── */
     .lignes-header {
       display: grid;
       grid-template-columns: 1fr 100px 160px 44px;
@@ -185,15 +165,17 @@ if ($_SESSION['user_role'] === 'user') {
 </head>
 <body>
 
-  <!-- ── Sidebar ── -->
   <aside class="admin-sidebar">
     <div class="sidebar-logo">
       <img src="images/logoClub.png" alt="Logo Club">
     </div>
     <nav class="sidebar-nav">
-      <a href="index.php"       class="sidebar-link"        title="Accueil"><i class="bi bi-house-door-fill"></i></a>
-      <a href="commande.php"    class="sidebar-link"        title="Commandes"><i class="bi bi-receipt-cutoff"></i></a>
-      <a href="stock.php"       class="sidebar-link"        title="Stock"><i class="bi bi-box-seam-fill"></i></a>
+      <?php if ($_SESSION['user_role'] === 'admin'): ?>
+        <a href="index.php"       class="sidebar-link"        title="Accueil"><i class="bi bi-house-door-fill"></i></a>
+        <a href="commande.php"    class="sidebar-link"        title="Commandes"><i class="bi bi-receipt-cutoff"></i></a>
+        <a href="stock.php"       class="sidebar-link"        title="Stock"><i class="bi bi-box-seam-fill"></i></a>
+      <?php endif; ?>
+    
       <a href="mouvements.php"  class="sidebar-link active" title="Mouvements"><i class="bi bi-arrow-left-right"></i></a>
       <a href="vente.php"       class="sidebar-link"        title="Vente"><i class="bi bi-cart-fill"></i></a>
       <a href="user.php"        class="sidebar-link"        title="Utilisateurs"><i class="bi bi-person-circle"></i></a>
@@ -228,13 +210,10 @@ if ($_SESSION['user_role'] === 'user') {
     </div>
   </aside>
 
-  <!-- ── Toast notification ── -->
   <div class="mvt-toast" id="mvt-toast"></div>
 
 
-  <!-- ═══════════════════════════════════════════════
-       SECTION 1 — ENTRÉE DE STOCK
-  ═══════════════════════════════════════════════ -->
+
   <div class="stock-table-wrapper">
     <div class="stock-table-header">
       <h5 class="stock-table-title">
@@ -245,7 +224,6 @@ if ($_SESSION['user_role'] === 'user') {
     <div class="p-4">
       <form id="form-entree" autocomplete="off" novalidate>
 
-        <!-- En-tête : Entrepôt + Date -->
         <div class="row g-3 mb-4">
           <div class="col-sm-5 col-md-4">
             <label class="form-label fw-semibold lbl-req" for="entree-entrepot">Entrepôt</label>
@@ -259,7 +237,6 @@ if ($_SESSION['user_role'] === 'user') {
           </div>
         </div>
 
-        <!-- En-têtes colonnes (desktop) -->
         <div class="lignes-header">
           <span>Produit <span style="color:#e74c3c">*</span></span>
           <span>Quantité <span style="color:#e74c3c">*</span></span>
@@ -267,14 +244,12 @@ if ($_SESSION['user_role'] === 'user') {
           <span></span>
         </div>
 
-        <!-- Lignes produits -->
         <div id="entree-lignes"></div>
 
         <button type="button" class="btn btn-outline-secondary btn-sm mt-3" id="btn-ajouter-ligne">
           <i class="bi bi-plus-lg me-1"></i>Ajouter une ligne
         </button>
 
-        <!-- Total dépensé -->
         <div class="total-row">
           <label for="entree-montant"><i class="bi bi-receipt me-1"></i>Total dépensé (€)</label>
           <input type="number" min="0" step="0.01" class="form-control" id="entree-montant" placeholder="0.00">
@@ -291,57 +266,11 @@ if ($_SESSION['user_role'] === 'user') {
   </div>
 
 
-  <!-- ═══════════════════════════════════════════════
-       SECTION 2 — DÉCLARER UNE PERTE
-  ═══════════════════════════════════════════════ -->
-  <div class="stock-table-wrapper">
-    <div class="stock-table-header">
-      <h5 class="stock-table-title">
-        <i class="bi bi-exclamation-triangle me-2"></i>Déclarer une perte
-      </h5>
-    </div>
-
-    <div class="p-4">
-      <form id="form-perte" autocomplete="off" novalidate>
-        <div class="row g-3 align-items-end">
-          <div class="col-sm-6 col-md-4">
-            <label class="form-label fw-semibold lbl-req" for="perte-produit">Produit</label>
-            <select class="form-select" id="perte-produit" required>
-              <option value="">— Sélectionner —</option>
-            </select>
-          </div>
-          <div class="col-sm-5 col-md-3">
-            <label class="form-label fw-semibold lbl-req" for="perte-entrepot">Entrepôt</label>
-            <select class="form-select" id="perte-entrepot" required>
-              <option value="">— Sélectionner —</option>
-            </select>
-          </div>
-          <div class="col-sm-4 col-md-2">
-            <label class="form-label fw-semibold lbl-req" for="perte-quantite">Quantité</label>
-            <input type="number" min="1" class="form-control" id="perte-quantite" placeholder="0" required>
-          </div>
-          <div class="col-sm-auto col-md-3">
-            <button type="button" class="btn btn-gold w-100" id="btn-valider-perte">
-              <i class="bi bi-exclamation-triangle me-2"></i>Déclarer la perte
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-
-  <!-- ═══════════════════════════════════════════════
-       SECTION 3 — HISTORIQUE
-  ═══════════════════════════════════════════════ -->
   <div class="stock-table-wrapper">
     <div class="stock-table-header">
       <h5 class="stock-table-title">
         <i class="bi bi-clock-history me-2"></i>Historique des mouvements
       </h5>
-      <button class="btn btn-sm btn-outline-secondary" id="btn-refresh-historique" title="Actualiser">
-        <i class="bi bi-arrow-clockwise me-1"></i>Actualiser
-      </button>
     </div>
 
     <div class="table-responsive">
@@ -363,6 +292,32 @@ if ($_SESSION['user_role'] === 'user') {
     </div>
   </div>
 
+  </div> </div>
+
+    <div id="footer-bottom">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-6 copyright">
+            <p>© 2023 Foodmart. All rights reserved.</p>
+          </div>
+          <div class="col-md-6 credit-link text-start text-md-end">
+            <p>Free HTML Template by <a href="https://templatesjungle.com/">TemplatesJungle</a> Distributed by <a href="https://themewagon">ThemeWagon</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  <nav class="mobile-bottom-nav">
+    <a href="index.php" class="mobile-bottom-nav__item" title="Caisse"><i class="bi bi-house-door-fill"></i></a>
+    <a href="commande.php" class="mobile-bottom-nav__item" title="Commandes"><i class="bi bi-receipt-cutoff"></i></a>
+    <a href="stock.php" class="mobile-bottom-nav__item" title="Stock"><i class="bi bi-box-seam-fill"></i></a>
+    <a href="mouvements.php" class="mobile-bottom-nav__item active" title="Mouvements"><i class="bi bi-arrow-left-right"></i></a>
+    <a href="vente.php" class="mobile-bottom-nav__item" title="Transactions"><i class="bi bi-cash-stack"></i></a>
+    <a href="user.php" class="mobile-bottom-nav__item" title="Utilisateurs"><i class="bi bi-people-fill"></i></a>
+    <a href="statistique.php" class="mobile-bottom-nav__item" title="Statistiques"><i class="bi bi-bar-chart-fill"></i></a>
+    <a href="api/deco.php" class="mobile-bottom-nav__item" title="Profil / Déconnexion"><i class="bi bi-person-circle"></i></a>
+  </nav>
 
   <script src="js/jquery-1.11.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>

@@ -1,3 +1,5 @@
+let commandesData = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     chargerTicketsCuisine();
     setInterval(chargerTicketsCuisine, 15000);
@@ -28,7 +30,9 @@ function chargerTicketsCuisine() {
             colComposees.innerHTML = '';
             colGrosses.innerHTML = '';
 
-            if (!data.commandes || data.commandes.length === 0) {
+            commandesData = data.commandes || [];
+
+        if (!data.commandes || data.commandes.length === 0) {
                 colSimples.innerHTML = '<p class="text-muted small">Aucune commande.</p>';
                 colComposees.innerHTML = '<p class="text-muted small">Aucune commande.</p>';
                 colGrosses.innerHTML = '<p class="text-muted small">Aucune commande.</p>';
@@ -52,11 +56,17 @@ function chargerTicketsCuisine() {
                 let estComposee = (compteurCompose > 0 && !estGrosse); 
                 
                 
+                const badgePaiement = commande.etatPaiement == 0
+                    ? `<span class="badge bg-danger ms-2">Impayé</span>`
+                    : `<span class="badge bg-success ms-2">Payé</span>`;
+
+                const bordureCard = commande.etatPaiement == 0 ? 'border-danger' : '';
 
                 let cardHTML = `
                 <div class="card border mb-3 rounded-3 shadow-sm">
                     <div class="card-body">
                         <h6 class="fw-bold mb-0">Ticket #${commande.numTicket}</h6>
+                        ${badgePaiement}
                         <small class="text-muted d-block mb-3">${dateAffichee}</small>
                 `;
 
@@ -98,4 +108,6 @@ function chargerTicketsCuisine() {
         })
         .catch(error => console.error('Erreur Fetch :', error));
 }
+
+
 

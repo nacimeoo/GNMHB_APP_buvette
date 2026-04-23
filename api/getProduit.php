@@ -1,27 +1,17 @@
 <?php
 header('Content-Type: application/json');
-require 'db.php';
+require 'db.php'; 
 
-$sql = "SELECT p.idproduit, p.nomProduit, p.Prix, p.image,
-               p.idSousCategorie,
-               sc.nomSousCategorie,
-               sc.idCategorie,
-               c.nomCategorie,
-               s.Quantite AS quantite,
-               s.datePeremption
-        FROM Produit p
-        INNER JOIN Sous_Categorie sc ON p.idSousCategorie = sc.idSousCategorie
-        INNER JOIN Categorie c ON sc.idCategorie = c.idCategorie
-        INNER JOIN Stock s ON p.idproduit = s.idProduit";
+$sql = "SELECT p.idproduit, p.nomProduit, p.Prix, p.Image, p.idSousCategorie,
+               s.Quantite as quantite, s.datePeremption,
+               e.idEntrepot, e.nom as nomEntrepot,
+               sc.nomSousCategorie
+        FROM produit p
+        JOIN stock s ON p.idproduit = s.idProduit
+        JOIN entrepot e ON s.idEntrepot = e.idEntrepot
+        LEFT JOIN sous_categorie sc ON p.idSousCategorie = sc.idSousCategorie";
 
-$params = [];
-if (!empty($_GET['categorie'])) {
-    $sql .= " WHERE c.idCategorie = :categorie";
-    $params[':categorie'] = $_GET['categorie'];
-}
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
+$stmt = $pdo->query($sql);
 $produits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 echo json_encode($produits);

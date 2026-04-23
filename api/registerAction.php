@@ -14,6 +14,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($prenom) && !empty($nom) && !empty($email) && !empty($mdp)) {
 
+        if (strlen($mdp) < 8) {
+            echo json_encode(['error' => 'Le mot de passe doit faire au moins 8 caractères.']);
+            exit();
+        }
+        if (!preg_match('/[A-Z]/', $mdp)) {
+            echo json_encode(['error' => 'Le mot de passe doit contenir au moins une majuscule.']);
+            exit();
+        }
+        if (!preg_match('/[a-z]/', $mdp)) {
+            echo json_encode(['error' => 'Le mot de passe doit contenir au moins une minuscule.']);
+            exit();
+        }
+        if (!preg_match('/[0-9]/', $mdp)) {
+            echo json_encode(['error' => 'Le mot de passe doit contenir au moins un chiffre.']);
+            exit();
+        }
+        if (!preg_match('/[\W_]/', $mdp)) {
+            echo json_encode(['error' => 'Le mot de passe doit contenir au moins un caractère spécial.']);
+            exit();
+        }
+
+        
         $hashed_password = password_hash($mdp, PASSWORD_DEFAULT);
 
         try {

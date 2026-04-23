@@ -26,7 +26,6 @@ if ($quantite <= 0) {
 try {
     $pdo->beginTransaction();
 
-    // Produit inconnu → on l'insère d'abord dans Produit
     if (!$idProduit) {
         if (!$nomProduit || !$idSousCategorie || !$prix) {
             echo json_encode(['success' => false, 'message' => 'Données incomplètes pour le nouveau produit']);
@@ -47,7 +46,6 @@ try {
         $idProduit = (int)$pdo->lastInsertId();
     }
 
-    // Tente d'incrémenter si la ligne existe déjà (même produit + même date)
     $stmtUp = $pdo->prepare("
         UPDATE Stock SET Quantite = Quantite + :qty
         WHERE idProduit = :id AND datePeremption <=> :date
@@ -55,7 +53,6 @@ try {
     $stmtUp->execute([':qty' => $quantite, ':id' => $idProduit, ':date' => $datePeremption]);
 
     if ($stmtUp->rowCount() === 0) {
-        // Aucune ligne correspondante → nouvelle entrée
         $stmtIns = $pdo->prepare("
             INSERT INTO Stock (idProduit, idEntrepot, idEvenement, Quantite, datePeremption)
             VALUES (:idProduit, :idEntrepot, :idEvenement, :quantite, :datePeremption)
